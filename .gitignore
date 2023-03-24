@@ -8,7 +8,6 @@ _roadhog-api-doc
 
 # production
 /dist
-/mock
 
 # misc
 .DS_Store
@@ -28,7 +27,7 @@ pnpm-lock.yaml
 *.log
 functions/*
 .temp/**
-*/*/*.md
+
 # umi
 .umi
 .umi-production
@@ -40,10 +39,3 @@ screenshot
 
 build
 
-config/*
-!/config/config.alpha.ts
-!/config/config.beta.ts
-!/config/config.rc.ts
-!/config/config.ts
-!/config/defaultSettings.ts
-!/config/routes.ts
