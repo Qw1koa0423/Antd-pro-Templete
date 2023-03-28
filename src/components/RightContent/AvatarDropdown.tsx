@@ -2,22 +2,22 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:39:51
  * @LastEditors: 刘浩奇 liuhaoqi@yaozai.net
- * @LastEditTime: 2023-03-22 13:26:15
+ * @LastEditTime: 2023-03-27 14:22:45
  * @FilePath: \Templete\src\components\RightContent\AvatarDropdown.tsx
  * @Description: HeaderRightContent配置
  *
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
  */
+import { loginout } from '@/services/account/api';
 import { LogoutOutlined } from '@ant-design/icons';
 import { useEmotionCss } from '@ant-design/use-emotion-css';
 import { history, useModel } from '@umijs/max';
-import { Spin } from 'antd';
+import { message, Spin } from 'antd';
 import { stringify } from 'querystring';
 import type { MenuInfo } from 'rc-menu/lib/interface';
 import React, { useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import HeaderDropdown from '../HeaderDropdown';
-
 export type GlobalHeaderRightProps = {
   menu?: boolean;
   children?: React.ReactNode;
@@ -26,7 +26,7 @@ export type GlobalHeaderRightProps = {
 export const AvatarName = () => {
   const { initialState } = useModel('@@initialState');
   const { currentUser } = initialState || {};
-  return <span className="anticon">{currentUser?.account}</span>;
+  return <span className="anticon">{currentUser?.username}</span>;
 };
 
 export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({ children }) => {
@@ -34,6 +34,8 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({ children }) =
    * 退出登录，并且将当前的 url 保存
    */
   const loginOut = async () => {
+    await loginout();
+    message.warning('账号已退出登录');
     window.localStorage.removeItem('userInfo');
     window.sessionStorage.removeItem('userInfo');
     const { search, pathname } = window.location;
@@ -41,9 +43,9 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({ children }) =
     /** 此方法会跳转到 redirect 参数所在的位置 */
     const redirect = urlParams.get('redirect');
     // Note: There may be security issues, please note
-    if (window.location.pathname !== '/user/login' && !redirect) {
+    if (window.location.pathname !== '/login' && !redirect) {
       history.replace({
-        pathname: '/user/login',
+        pathname: '/login',
         search: stringify({
           redirect: pathname + search,
         }),
