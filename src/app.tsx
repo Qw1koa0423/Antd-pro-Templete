@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:39:51
  * @LastEditors: 刘浩奇 liuhaoqi@yaozai.net
- * @LastEditTime: 2023-03-22 13:26:06
+ * @LastEditTime: 2023-03-28 09:55:34
  * @FilePath: \Templete\src\app.tsx
  * @Description: 项目入口
  *
@@ -15,14 +15,14 @@ import defaultSettings from '../config/defaultSettings';
 import { AvatarDropdown, AvatarName } from './components/RightContent/AvatarDropdown';
 import { errorConfig } from './requestErrorConfig';
 
-const loginPath = '/user/login';
+const loginPath = '/login';
 
 /**
  * @see  https://umijs.org/zh-CN/plugins/plugin-initial-state
  * */
 export async function getInitialState(): Promise<{
   settings?: Partial<LayoutSettings>;
-  currentUser?: User.LoginParams;
+  currentUser?: Account.LoginResult;
   loading?: boolean;
 }> {
   // 如果不是登录页面，执行
@@ -50,14 +50,14 @@ export async function getInitialState(): Promise<{
 export const layout: RunTimeLayoutConfig = ({ initialState }) => {
   return {
     avatarProps: {
-      src: '/avatar.png',
+      src: initialState?.currentUser?.avatar,
       title: <AvatarName />,
       render: (_, avatarChildren) => {
         return <AvatarDropdown>{avatarChildren}</AvatarDropdown>;
       },
     },
     waterMarkProps: {
-      content: initialState?.currentUser?.account,
+      content: initialState?.currentUser?.username,
     },
     onPageChange: () => {
       const { location } = history;
