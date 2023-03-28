@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:47:24
  * @LastEditors: 刘浩奇 liuhaoqi@yaozai.net
- * @LastEditTime: 2023-03-22 13:09:16
+ * @LastEditTime: 2023-03-27 10:42:33
  * @FilePath: \Templete\src\services\API.d.ts
  * @Description: 全局接口类型定义
  *
@@ -15,6 +15,7 @@ declare namespace API {
     pageSize: number;
     total: number;
     list?: T[];
+    success: boolean;
   };
   /** 分页请求 */
   type PageRequest = {
