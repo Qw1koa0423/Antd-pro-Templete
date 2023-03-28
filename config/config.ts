@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:44:59
  * @LastEditors: 刘浩奇 liuhaoqi@yaozai.net
- * @LastEditTime: 2023-03-22 13:14:43
+ * @LastEditTime: 2023-03-24 13:53:43
  * @FilePath: \Templete\config\config.ts
  * @Description:  生产配置文件
  * @see: https://umijs.org/config/
@@ -20,7 +20,7 @@ export default defineConfig({
    */
   hash: true,
   define: {
-    API_URL: '', // API地址
+    API_URL: '/api', // API地址
   },
   /**
    * @name 配置语言
@@ -30,6 +30,7 @@ export default defineConfig({
     antd: true,
     baseNavigator: true,
   },
+
   /**
    * @name 兼容性设置
    * @description 设置 ie11 不一定完美兼容，需要检查自己使用的所有依赖

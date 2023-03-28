@@ -2,8 +2,8 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-17 16:40:02
  * @LastEditors: 刘浩奇 liuhaoqi@yaozai.net
- * @LastEditTime: 2023-03-17 17:57:52
- * @FilePath: \robot-console\config\defaultSettings.ts
+ * @LastEditTime: 2023-03-24 13:42:10
+ * @FilePath: \Templete\config\defaultSettings.ts
  * @Description: layout配置
  *
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
@@ -20,7 +20,7 @@ const Settings: ProLayoutProps & {
   fixedHeader: true,
   fixSiderbar: true,
   colorWeak: false,
-  title: '遥在机器人(运营端)',
+  title: '遥在后台模板',
   pwa: false,
   logo: '/logo.svg',
   iconfontUrl: '',

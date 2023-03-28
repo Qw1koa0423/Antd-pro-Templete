@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:39:51
  * @LastEditors: 刘浩奇 liuhaoqi@yaozai.net
- * @LastEditTime: 2023-03-22 13:13:44
+ * @LastEditTime: 2023-03-27 10:47:48
  * @FilePath: \Templete\src\requestErrorConfig.ts
  * @Description: request错误处理
  *
@@ -11,6 +11,7 @@
 
 import type { RequestConfig } from '@umijs/max';
 import { history } from '@umijs/max';
+import { message } from 'antd';
 
 import type { RequestOptionsInit } from 'umi-request';
 interface ResponseStructure {
@@ -71,9 +72,10 @@ export const errorConfig: RequestConfig = {
           window.localStorage.removeItem('userInfo');
           window.sessionStorage.removeItem('userInfo');
           const { location } = history;
-          if (location.pathname !== '/user/login') {
-            history.push('/user/login');
+          if (location.pathname !== '/login') {
+            history.push('/login');
           }
+          message.error(data.msg || '');
           return Promise.reject({
             errorMessage: data.msg,
           });
