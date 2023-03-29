@@ -168,7 +168,7 @@ const Home: React.FC = () => {
             <InfoCard
               index={4}
               title="项目介绍"
-              href="https://github.com/Qw1koa0423/Ant-Design-Pro-Templete"
+              href="https://github.com/Qw1koa0423/Antd-pro-Templete.git"
               desc="目前项目计划包含基础的登录、权限、菜单等功能，以及一些常用的业务组件。项目会持续更新，欢迎大家提出宝贵的意见。"
             />
           </div>
