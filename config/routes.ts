@@ -12,13 +12,13 @@ export default [
   {
     path: '/user',
     layout: false,
-    routes: [{ path: '/user/login', component: './User/Login' }],
+    routes: [{ path: '/login', component: './login' }],
   },
   {
     path: '/home',
     name: '首页',
     icon: 'smile',
-    component: './Home',
+    component: './home',
   },
 
   { path: '/', redirect: '/home' },
