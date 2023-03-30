@@ -1,10 +1,10 @@
 /*
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-24 13:20:32
- * @LastEditors: 刘浩奇 liuhaoqi@yaozai.net
- * @LastEditTime: 2023-03-28 17:16:16
- * @FilePath: \Templete\src\pages\User\UserDetail.tsx
- * @Description:
+ * @LastEditors: 刘浩奇 liuhaoqw1ko@gmail.com
+ * @LastEditTime: 2023-03-30 16:00:34
+ * @FilePath: \Templete\src\pages\user\user_detail.tsx
+ * @Description: 用户详情
  *
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
  */
@@ -13,10 +13,12 @@ import { useParams } from '@umijs/max';
 
 import { Avatar, Descriptions, Empty, Space, Typography } from 'antd';
 import React, { useEffect, useState } from 'react';
-const UserDetail: React.FC = () => {
+const UserDetailPage: React.FC = () => {
+  /** 获取哟用户的id */
   const urlParams = useParams<{ id: string }>();
+  /** 用户详情 */
   const [userDetail, setUserDetail] = useState<
-    User.User & { permissionNames: string[]; roleNames: string; regionNames: string[] }
+    UserType.User & { permissionNames: string[]; roleNames: string; regionNames: string[] }
   >();
   useEffect(() => {
     if (!urlParams?.id) return;
@@ -64,4 +66,4 @@ const UserDetail: React.FC = () => {
   );
 };
 
-export default UserDetail;
+export default UserDetailPage;

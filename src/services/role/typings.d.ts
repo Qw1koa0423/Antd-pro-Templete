@@ -8,7 +8,7 @@
  *
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
  */
-declare namespace Role {
+declare namespace RoleType {
   type RoleListParams = {
     name?: string;
     startTime?: string;

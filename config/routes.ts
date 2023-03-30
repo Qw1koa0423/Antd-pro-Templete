@@ -1,8 +1,8 @@
 /*
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-17 16:40:02
- * @LastEditors: 刘浩奇 liuhaoqi@yaozai.net
- * @LastEditTime: 2023-03-28 17:48:27
+ * @LastEditors: 刘浩奇 liuhaoqw1ko@gmail.com
+ * @LastEditTime: 2023-03-30 15:43:21
  * @FilePath: \Templete\config\routes.ts
  * @Description: 路由配置
  *
@@ -12,31 +12,31 @@ export default [
   {
     path: '/login',
     layout: false,
-    routes: [{ path: '/login', component: './Login' }],
+    routes: [{ path: '/login', component: './login' }],
   },
   {
     path: '/home',
     name: '首页',
     icon: 'smile',
-    component: './Home',
+    component: './home',
   },
   {
     path: '/user',
     name: '用户管理',
     icon: 'AliwangwangOutlined',
-    component: './User',
+    component: './user',
     routes: [
       {
         index: true,
         name: '用户列表',
-        component: './User/UserList',
+        component: './user/user_list',
         access: 'normalRouteFilter',
         api: ['/user/list', '/user/detail', '/user/add', '/user/update', '/user/delete'],
       },
       {
         path: 'detail/:id',
         name: '用户详情',
-        component: './User/UserDetail',
+        component: './user/user_detail',
         hideInMenu: true,
         access: 'normalRouteFilter',
         api: ['/user/detail'],
@@ -47,7 +47,7 @@ export default [
     path: '/role',
     name: '角色管理',
     icon: 'AndroidOutlined',
-    component: './Role',
+    component: './role',
     access: 'normalRouteFilter',
     api: ['/role/list', '/role/detail', '/role/add', '/role/update', '/role/delete'],
   },
@@ -55,7 +55,7 @@ export default [
     path: '/option',
     name: '后台数据',
     icon: 'AreaChartOutlined',
-    component: './Option',
+    component: './option',
     access: 'normalRouteFilter',
     api: ['/permission/list', '/log/list'],
   },

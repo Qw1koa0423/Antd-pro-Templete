@@ -11,9 +11,12 @@
 
 import { request } from 'umi';
 
-/** 登录 */
-export async function login(body: Account.LoginParams) {
-  return request<Account.LoginResult>(`${API_URL}/login`, {
+/**
+ * @name 登录
+ * @param body
+ */
+export async function login(body: AccountType.LoginParams) {
+  return request<AccountType.LoginResult>(`${API_URL}/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -21,15 +24,19 @@ export async function login(body: Account.LoginParams) {
     data: body,
   });
 }
-/** 退出登录 */
+/**
+ * @name 退出登录
+ */
 export async function loginout() {
   return request(`${API_URL}/logout`, {
     method: 'POST',
   });
 }
-/** 获取上传参数 */
+/**
+ * @name 获取上传参数
+ */
 export async function getUploadParams() {
-  return request<Account.UploadParams>(`${API_URL}/upload/params`, {
+  return request<AccountType.UploadParams>(`${API_URL}/upload/params`, {
     method: 'GET',
   });
 }

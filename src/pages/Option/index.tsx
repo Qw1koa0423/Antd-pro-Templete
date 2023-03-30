@@ -1,3 +1,13 @@
+/*
+ * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
+ * @Date: 2023-03-30 15:31:47
+ * @LastEditors: 刘浩奇 liuhaoqw1ko@gmail.com
+ * @LastEditTime: 2023-03-30 15:50:52
+ * @FilePath: \Templete\src\pages\option\index.tsx
+ * @Description: 后台数据管理
+ *
+ * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
+ */
 import { getOperationLogList, getPermissionList } from '@/services/option/api';
 import {
   PageContainer,
@@ -9,13 +19,13 @@ import {
 import { useAccess } from '@umijs/max';
 import { Tag } from 'antd';
 import { useState } from 'react';
-const Options = () => {
+const OptionsPage = () => {
   /** 权限 */
   const access = useAccess();
   /** 顶部切换的key */
   const [tabKey, setTabKey] = useState('log');
   /** 表格列 */
-  const columns: ProColumns<Option.OperationLogListItem>[] = [
+  const columns: ProColumns<OptionType.OperationLogListItem>[] = [
     {
       dataIndex: 'keyIndex',
       align: 'center',
@@ -47,7 +57,7 @@ const Options = () => {
     },
   ];
   /** 表格列 */
-  const metas: ProListMetas<Option.PermissionListItem> = {
+  const metas: ProListMetas<OptionType.PermissionListItem> = {
     title: {
       dataIndex: 'name',
     },
@@ -86,7 +96,7 @@ const Options = () => {
       }}
     >
       {tabKey === 'log' ? (
-        <ProTable<Option.OperationLogListItem, API.PageRequest & { keyWords: string }>
+        <ProTable<OptionType.OperationLogListItem, API.PageRequest & { keyWords: string }>
           key="logList"
           headerTitle="操作日志"
           columnEmptyText="- -"
@@ -112,7 +122,7 @@ const Options = () => {
           }}
         ></ProTable>
       ) : (
-        <ProList<Option.PermissionListItem>
+        <ProList<OptionType.PermissionListItem>
           key="apiList"
           headerTitle="API列表"
           columnEmptyText="- -"
@@ -137,4 +147,4 @@ const Options = () => {
   );
 };
 
-export default Options;
+export default OptionsPage;

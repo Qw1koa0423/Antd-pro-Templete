@@ -1,14 +1,14 @@
 /*
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-26 13:28:48
- * @LastEditors: 刘浩奇 liuhaoqi@yaozai.net
- * @LastEditTime: 2023-03-27 14:09:31
+ * @LastEditors: 刘浩奇 liuhaoqw1ko@gmail.com
+ * @LastEditTime: 2023-03-30 15:44:34
  * @FilePath: \Templete\src\services\user\typings.d.ts
  * @Description: 用户管理相关类型
  *
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
  */
-declare namespace User {
+declare namespace UserType {
   /** 用户列表请求 */
   type UserListParams = {
     keyWords?: string;

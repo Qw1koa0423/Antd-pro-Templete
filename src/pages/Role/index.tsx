@@ -1,3 +1,13 @@
+/*
+ * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
+ * @Date: 2023-03-30 15:31:47
+ * @LastEditors: 刘浩奇 liuhaoqw1ko@gmail.com
+ * @LastEditTime: 2023-03-30 15:51:10
+ * @FilePath: \Templete\src\pages\role\index.tsx
+ * @Description: 角色管理
+ *
+ * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
+ */
 import { getPermissionList } from '@/services/option/api';
 import { addRole, deleteRole, getRoleDetail, getRoleList, updateRole } from '@/services/role/api';
 import {
@@ -16,7 +26,7 @@ type MODALFORM_TYPE = {
   name: string;
   permissions: number[];
 };
-const Role = () => {
+const RolePage = () => {
   /** 权限 */
   const access = useAccess();
   /** 获取Table实例 */
@@ -28,11 +38,11 @@ const Role = () => {
   /** 编辑初始值 */
   const [roleId, setRoleId] = useState<number>();
   /** 角色详情 */
-  const [roleDetail, setRoleDetail] = useState<Role.Role>();
+  const [roleDetail, setRoleDetail] = useState<RoleType.Role>();
   /** 按钮loading状态 */
   const [confirmLoading, setConfirmLoading] = useState<boolean>(false);
   /** 表格列 */
-  const columns: ProColumns<Role.RoleListItem>[] = [
+  const columns: ProColumns<RoleType.RoleListItem>[] = [
     {
       dataIndex: 'keyIndex',
       title: '序号',
@@ -195,7 +205,7 @@ const Role = () => {
   };
   return (
     <PageContainer>
-      <ProTable<Role.RoleListItem, API.PageRequest & Role.RoleListParams>
+      <ProTable<RoleType.RoleListItem, API.PageRequest & RoleType.RoleListParams>
         key="userList"
         columnEmptyText="- -"
         rowKey={(record) => record.id}
@@ -205,7 +215,7 @@ const Role = () => {
         request={async (params) => {
           const { list, total, current, pageSize, success } = await getRoleList(params);
           return {
-            data: (list || []).map((item: Role.RoleListItem, index: number) => {
+            data: (list || []).map((item: RoleType.RoleListItem, index: number) => {
               item.keyIndex = (current - 1) * pageSize + (index + 1);
               return item;
             }),
@@ -361,4 +371,4 @@ const Role = () => {
   );
 };
 
-export default Role;
+export default RolePage;

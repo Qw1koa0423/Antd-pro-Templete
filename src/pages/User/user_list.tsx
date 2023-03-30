@@ -1,3 +1,13 @@
+/*
+ * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
+ * @Date: 2023-03-30 15:31:47
+ * @LastEditors: 刘浩奇 liuhaoqw1ko@gmail.com
+ * @LastEditTime: 2023-03-30 15:52:02
+ * @FilePath: \Templete\src\pages\user\user_list.tsx
+ * @Description: 用户列表
+ *
+ * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
+ */
 import { getUploadParams } from '@/services/account/api';
 import { getRoleList } from '@/services/role/api';
 import { addUser, deleteUser, getUserDetail, getUserList, updateUser } from '@/services/user/api';
@@ -26,7 +36,7 @@ type MODALFORM_TYPE = {
   role: number;
 };
 
-const UserList: React.FC = () => {
+const UserListPage: React.FC = () => {
   /** 权限 */
   const access = useAccess();
   /** 获取Table实例 */
@@ -37,7 +47,7 @@ const UserList: React.FC = () => {
   const [userId, setUserId] = useState<number>();
   const [confirmLoading, setConfirmLoading] = useState<boolean>(false);
   /** 表格列 */
-  const columns: ProColumns<User.UserListItem>[] = [
+  const columns: ProColumns<UserType.UserListItem>[] = [
     {
       dataIndex: 'keyIndex',
       title: '序号',
@@ -308,7 +318,7 @@ const UserList: React.FC = () => {
   };
   return (
     <>
-      <ProTable<User.UserListItem, API.PageRequest & User.UserListParams>
+      <ProTable<UserType.UserListItem, API.PageRequest & UserType.UserListParams>
         key="userList"
         columnEmptyText="- -"
         rowKey={(record) => record.id}
@@ -318,7 +328,7 @@ const UserList: React.FC = () => {
         request={async (params) => {
           const { list, total, current, pageSize, success } = await getUserList(params);
           return {
-            data: (list || []).map((item: User.UserListItem, index: number) => {
+            data: (list || []).map((item: UserType.UserListItem, index: number) => {
               item.keyIndex = (current - 1) * pageSize + (index + 1);
               return item;
             }),
@@ -522,4 +532,4 @@ const UserList: React.FC = () => {
   );
 };
 
-export default UserList;
+export default UserListPage;

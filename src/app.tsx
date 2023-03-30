@@ -23,7 +23,7 @@ const loginPath = '/login';
  * */
 export async function getInitialState(): Promise<{
   settings?: Partial<LayoutSettings>;
-  currentUser?: Account.LoginResult;
+  currentUser?: AccountType.LoginResult;
   loading?: boolean;
 }> {
   // 如果不是登录页面，执行

@@ -1,15 +1,15 @@
 /*
- * @Author: 刘浩奇 liuhaoqi@yaozai.net
- * @Date: 2023-03-28 10:48:25
- * @LastEditors: 刘浩奇 liuhaoqi@yaozai.net
- * @LastEditTime: 2023-03-28 14:26:29
- * @FilePath: \Templete\src\services\permission\typings.d.ts
- * @Description: 权限相关类型
+ * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
+ * @Date: 2023-03-30 15:31:47
+ * @LastEditors: 刘浩奇 liuhaoqw1ko@gmail.com
+ * @LastEditTime: 2023-03-30 15:52:41
+ * @FilePath: \Templete\src\services\option\typings.d.ts
+ * @Description: 数据相关接口类型定义
  *
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
  */
 
-declare namespace Option {
+declare namespace OptionType {
   type PermissionListItem = {
     id: number;
     name: string;
