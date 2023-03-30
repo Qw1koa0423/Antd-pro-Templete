@@ -1,8 +1,8 @@
 /*
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:39:51
- * @LastEditors: 刘浩奇 liuhaoqi@yaozai.net
- * @LastEditTime: 2023-03-22 13:26:15
+ * @LastEditors: 刘浩奇 liuhaoqw1ko@gmail.com
+ * @LastEditTime: 2023-03-29 18:02:47
  * @FilePath: \Templete\src\components\RightContent\AvatarDropdown.tsx
  * @Description: HeaderRightContent配置
  *
@@ -41,9 +41,9 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({ children }) =
     /** 此方法会跳转到 redirect 参数所在的位置 */
     const redirect = urlParams.get('redirect');
     // Note: There may be security issues, please note
-    if (window.location.pathname !== '/user/login' && !redirect) {
+    if (window.location.pathname !== '/login' && !redirect) {
       history.replace({
-        pathname: '/user/login',
+        pathname: '/login',
         search: stringify({
           redirect: pathname + search,
         }),

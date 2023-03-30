@@ -71,8 +71,8 @@ export const errorConfig: RequestConfig = {
           window.localStorage.removeItem('userInfo');
           window.sessionStorage.removeItem('userInfo');
           const { location } = history;
-          if (location.pathname !== '/user/login') {
-            history.push('/user/login');
+          if (location.pathname !== '/login') {
+            history.push('/login');
           }
           return Promise.reject({
             errorMessage: data.msg,
