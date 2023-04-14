@@ -26,7 +26,8 @@ declare module '@antv/data-set';
 declare module 'mockjs';
 declare module 'react-fittext';
 declare module 'bizcharts-plugin-slider';
-
+declare module '@/utils/area.json';
+declare module '@baiducloud/sdk';
 declare const REACT_APP_ENV: 'local' | 'test' | 'dev' | 'pre' | false;
 //接口地址
 declare const API_URL: string;

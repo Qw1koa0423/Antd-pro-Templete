@@ -1,8 +1,8 @@
 /*
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:44:59
- * @LastEditors: 刘浩奇 liuhaoqi@yaozai.net
- * @LastEditTime: 2023-03-22 13:14:43
+ * @LastEditors: 刘浩奇 liuhaoqw1ko@gmail.com
+ * @LastEditTime: 2023-04-14 11:45:23
  * @FilePath: \Templete\config\config.ts
  * @Description:  生产配置文件
  * @see: https://umijs.org/config/
@@ -123,6 +123,10 @@ export default defineConfig({
     // 解决首次加载时白屏的问题
     {
       src: '/scripts/loading.js',
+      async: true,
+    },
+    {
+      src: 'https://unpkg.com/cos-js-sdk-v5/demo/common/cos-auth.min.js',
       async: true,
     },
   ],
