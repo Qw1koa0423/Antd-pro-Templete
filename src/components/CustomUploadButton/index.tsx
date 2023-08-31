@@ -1,29 +1,37 @@
 /*
  * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
  * @Date: 2023-03-30 16:17:04
- * @LastEditors: 刘浩奇 liuhaoqw1ko@gmail.com
- * @LastEditTime: 2023-04-14 11:41:58
- * @FilePath: \Templete\src\components\CustomUploadButton\index.tsx
+ * @LastEditors: 刘浩奇 liuhaoqi@yaozai.net
+ * @LastEditTime: 2023-08-31 10:02:24
+ * @FilePath: \Antd-pro-Templete\src\components\CustomUploadButton\index.tsx
  * @Description:
  *
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
  */
 import { customUpload, getFileMd5, getFileSize, getSignature, getVideoThumbImg } from '@/utils';
 
-import { ProFormUploadButton, ProFormUploadButtonProps } from '@ant-design/pro-components';
+import {
+  ProFormUploadButton,
+  ProFormUploadButtonProps,
+  ProFormUploadDragger,
+  ProFormUploadDraggerProps,
+} from '@ant-design/pro-components';
 import { message, Upload } from 'antd';
 import type { RcFile, UploadChangeParam, UploadFile, UploadProps } from 'antd/lib/upload';
 import { MD5 } from 'crypto-js';
 import React from 'react';
 
-interface CustomUploadProps extends Omit<ProFormUploadButtonProps, 'fieldProps'> {
+interface UploadButtonProps {
+  uploadType?: 'button' | 'dragger'; //上传类型
   customLoading: React.Dispatch<React.SetStateAction<boolean>>; //设置确认按钮loading
   customFileType?: string[]; //文件类型限制
   customFileSize?: number[]; //文件大小限制 第一个参数为单个文件大小限制 第二个参数为文件总大小限制
   customFileSizeError?: string[]; //文件大小限制错误提示 第一个参数为单个文件大小限制错误提示 第二个参数为文件总大小限制错误提示
   customFileTypeError?: string; //文件类型限制错误提示
-  customFrameCust?: boolean; //是否自定义上传框
+  customFrameCust?: boolean; //是否自定义上传
   customFieldProps?: UploadProps; //自定义fieldProps
+  customFileWH?: number[];
+  customRatio?: number[];
   customGetUploadAuth: () => Promise<{
     channel: string;
     host: string;
@@ -36,7 +44,12 @@ interface CustomUploadProps extends Omit<ProFormUploadButtonProps, 'fieldProps'>
     securityToken?: string;
   }>; //获取上传凭证的方法
 }
-const CustomUploadButton: React.FC<CustomUploadProps> = ({
+
+const CustomUploadButton: React.FC<
+  | (UploadButtonProps & Omit<ProFormUploadButtonProps, 'fieldProps'>)
+  | (UploadButtonProps & Omit<ProFormUploadDraggerProps, 'fieldProps'>)
+> = ({
+  uploadType = 'button',
   customLoading,
   customFileType,
   customFileSize,
@@ -44,6 +57,8 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
   customFileTypeError,
   customGetUploadAuth,
   customFieldProps,
+  customFileWH,
+  customRatio,
   customFrameCust = false,
   ...props
 }) => {
@@ -52,6 +67,15 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
     file: RcFile & { url?: string; width?: number; height?: number; thumbUrl?: string },
     fileList: RcFile[],
   ) => {
+    /** 判断有无上传权限，是否过期 */
+    if (
+      window.localStorage.getItem('uploadData') === null ||
+      JSON.parse(window.localStorage.getItem('uploadData') || '{}').expiredTime * 1000 < Date.now()
+    ) {
+      await customGetUploadAuth().then((res) => {
+        window.localStorage.setItem('uploadData', JSON.stringify(res));
+      });
+    }
     file.url = JSON.parse(window.localStorage.getItem('uploadData') || '{}').path;
     customLoading(true);
     /** 判断文件大小 */
@@ -73,13 +97,32 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
       }
     }
     /** 判断文件类型 */
-    if (!customFileType?.includes(file.type)) {
+    if (
+      customFileType &&
+      !customFileType.includes(file.type) &&
+      !customFileType.includes(file.name.split('.')[1])
+    ) {
       message.error(customFileTypeError || '文件类型不符合要求');
       customLoading(false);
       return Upload.LIST_IGNORE;
     }
-    getFileSize(file);
-
+    await getFileSize(file);
+    /** 判断文件尺寸 */
+    if (customFileWH) {
+      if (customFileWH[0] !== file.width || customFileWH[1] !== file.height) {
+        message.error(`请上传宽为${customFileWH[0]}px,高为${customFileWH[1]}px的图片`);
+        customLoading(false);
+        return Upload.LIST_IGNORE;
+      }
+    }
+    // 判断宽高比
+    if (customRatio && file.width && file.height) {
+      if (file.width / file.height !== customRatio[0] / customRatio[1]) {
+        message.error(`请上传宽高比为${customRatio[0]}:${customRatio[1]}的图片`);
+        customLoading(false);
+        return Upload.LIST_IGNORE;
+      }
+    }
     /** 假如是视频 */
     if (file.type.includes('video')) {
       getVideoThumbImg(file, 2)
@@ -102,17 +145,6 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
           return Upload.LIST_IGNORE;
         });
     }
-
-    /** 判断有无上传权限，是否过期 */
-    if (
-      window.localStorage.getItem('uploadData') === null ||
-      JSON.parse(window.localStorage.getItem('uploadData') || '{}').expiredTime < Date.now()
-    ) {
-      customGetUploadAuth().then((res) => {
-        window.localStorage.setItem('uploadData', JSON.stringify(res));
-      });
-    }
-
     return file;
   };
 
@@ -147,8 +179,20 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
         return Object.assign({ key: file.url }, signature);
       });
   };
-  return (
+  return uploadType === 'button' ? (
     <ProFormUploadButton
+      fieldProps={{
+        name: 'file',
+        action: JSON.parse(window.localStorage.getItem('uploadData') || '{}').endPoint,
+        beforeUpload,
+        onChange: onFileChange,
+        data: fileData,
+        ...customFieldProps,
+      }}
+      {...props}
+    />
+  ) : (
+    <ProFormUploadDragger
       fieldProps={{
         name: 'file',
         action: JSON.parse(window.localStorage.getItem('uploadData') || '{}').endPoint,
