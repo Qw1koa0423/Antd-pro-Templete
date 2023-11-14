@@ -1,9 +1,9 @@
 /*
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:39:51
- * @LastEditors: 刘浩奇 liuhaoqi@yaozai.net
- * @LastEditTime: 2023-03-22 13:26:06
- * @FilePath: \Templete\src\app.tsx
+ * @LastEditors: 刘浩奇 liuhaoqi@insitpace.com
+ * @LastEditTime: 2023-11-14 10:19:10
+ * @FilePath: \Antd-pro-Templete\src\app.tsx
  * @Description: 项目入口
  *
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
@@ -15,7 +15,7 @@ import defaultSettings from '../config/defaultSettings';
 import { AvatarDropdown, AvatarName } from './components/RightContent/AvatarDropdown';
 import { errorConfig } from './requestErrorConfig';
 
-const loginPath = '/login';
+const loginPath = '/user/login';
 
 /**
  * @see  https://umijs.org/zh-CN/plugins/plugin-initial-state
