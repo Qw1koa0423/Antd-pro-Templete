@@ -11,7 +11,7 @@
 declare namespace CommonType {
   /** 上传权限 */
   interface AuthResponse {
-    channel: string;
+    channel: 'oss' | 'cos' | 'bos' | 'server';
     host: string;
     path: string;
     bucket?: string;

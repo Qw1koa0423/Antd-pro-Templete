@@ -8,7 +8,7 @@
  *
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
  */
-import { getFileMd5, getFileSize, getVideoThumbImg } from './dealwithfile';
+import { getFileMd5, getFileWH, getVideoThumbImg } from './dealwithfile';
 import getSignature from './signature';
-import customUpload from './upload';
-export { getFileMd5, getFileSize, getVideoThumbImg, getSignature, customUpload };
+import { customUpload, isExpired } from './upload';
+export { getFileMd5, getFileWH, getVideoThumbImg, getSignature, customUpload, isExpired };

@@ -1,9 +1,9 @@
 /*
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:44:59
- * @LastEditors: 刘浩奇 liuhaoqw1ko@gmail.com
- * @LastEditTime: 2023-04-14 11:45:23
- * @FilePath: \Templete\config\config.ts
+ * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
+ * @LastEditTime: 2024-03-18 11:35:14
+ * @FilePath: \Antd-pro-Templete\config\config.ts
  * @Description:  生产配置文件
  * @see: https://umijs.org/config/
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
@@ -126,7 +126,7 @@ export default defineConfig({
       async: true,
     },
     {
-      src: 'https://unpkg.com/cos-js-sdk-v5/demo/common/cos-auth.min.js',
+      src: 'node_modules/@baiducloud/sdk/dist/baidubce-sdk.bundle.min.js',
       async: true,
     },
   ],
