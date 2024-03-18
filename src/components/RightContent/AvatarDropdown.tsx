@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:39:51
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2024-03-18 10:45:28
+ * @LastEditTime: 2024-03-18 13:31:12
  * @FilePath: \Antd-pro-Templete\src\components\RightContent\AvatarDropdown.tsx
  * @Description: HeaderRightContent配置
  *
@@ -26,7 +26,7 @@ export type GlobalHeaderRightProps = {
 export const AvatarName = () => {
   const { initialState } = useModel('@@initialState');
   const { currentUser } = initialState || {};
-  return <span className="anticon">{currentUser?.account}</span>;
+  return <span className="anticon">{currentUser?.username}</span>;
 };
 
 export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({ children }) => {
@@ -100,7 +100,7 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({ children }) =
 
   const { currentUser } = initialState;
 
-  if (!currentUser || !currentUser.account) {
+  if (!currentUser || !currentUser.username) {
     return loading;
   }
 

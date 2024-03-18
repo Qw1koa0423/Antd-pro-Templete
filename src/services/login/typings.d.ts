@@ -14,7 +14,7 @@
 declare namespace UserType {
   /** 登录请求类型 */
   type LoginParams = {
-    account: string;
+    username: string;
     password: string;
   };
   /** 登录返回类型 */

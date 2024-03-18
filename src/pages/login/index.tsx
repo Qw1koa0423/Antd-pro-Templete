@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:39:51
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2024-03-18 10:46:21
+ * @LastEditTime: 2024-03-18 13:33:40
  * @FilePath: \Antd-pro-Templete\src\pages\Login\index.tsx
  * @Description: 登录
  *
@@ -41,17 +41,17 @@ const LoginPage: React.FC = () => {
       });
       window.localStorage.setItem(
         'userInfo',
-        JSON.stringify({ ...userInfo, account: values.account }),
+        JSON.stringify({ ...userInfo, username: values.username }),
       );
       window.sessionStorage.setItem(
         'userInfo',
-        JSON.stringify({ ...userInfo, account: values.account }),
+        JSON.stringify({ ...userInfo, username: values.username }),
       );
       if (userInfo) {
         flushSync(() => {
           setInitialState((s: any) => ({
             ...s,
-            currentUser: { ...userInfo, account: values.account },
+            currentUser: { ...userInfo, username: values.username },
           }));
         });
         message.success('登录成功！');
@@ -93,7 +93,7 @@ const LoginPage: React.FC = () => {
           }}
         >
           <ProFormText
-            name="account"
+            name="username"
             fieldProps={{
               size: 'large',
               prefix: <UserOutlined />,
