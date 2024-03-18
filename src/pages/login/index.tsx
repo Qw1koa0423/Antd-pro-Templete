@@ -1,9 +1,9 @@
 /*
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:39:51
- * @LastEditors: 刘浩奇 liuhaoqw1ko@gmail.com
- * @LastEditTime: 2023-03-30 10:50:36
- * @FilePath: \Templete\src\pages\login\index.tsx
+ * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
+ * @LastEditTime: 2024-03-18 10:46:21
+ * @FilePath: \Antd-pro-Templete\src\pages\Login\index.tsx
  * @Description: 登录
  *
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
@@ -75,7 +75,7 @@ const LoginPage: React.FC = () => {
       </Helmet>
       <div
         style={{
-          // flex: '1',
+          // flex: 1,
           marginBottom: 260,
           padding: '32px 0',
         }}
@@ -97,9 +97,8 @@ const LoginPage: React.FC = () => {
             fieldProps={{
               size: 'large',
               prefix: <UserOutlined />,
-              maxLength: 11,
             }}
-            placeholder={'用户名'}
+            placeholder="用户名"
             rules={[
               {
                 required: true,
@@ -112,9 +111,8 @@ const LoginPage: React.FC = () => {
             fieldProps={{
               size: 'large',
               prefix: <LockOutlined />,
-              maxLength: 16,
             }}
-            placeholder={'密码'}
+            placeholder="密码"
             rules={[
               {
                 required: true,
