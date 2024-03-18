@@ -12,7 +12,13 @@ export default [
   {
     path: '/user',
     layout: false,
-    routes: [{ path: 'login', component: './Login' }],
+    routes: [
+      {
+        name: '登录',
+        path: '/user/login',
+        component: './Login',
+      },
+    ],
   },
   {
     path: '/home',
@@ -20,7 +26,6 @@ export default [
     icon: 'smile',
     component: './Home',
   },
-
   { path: '/', redirect: '/home' },
   { path: '*', layout: false, component: './404' },
 ];

@@ -1,9 +1,9 @@
 ﻿/*
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:39:51
- * @LastEditors: 刘浩奇 liuhaoqi@yaozai.net
- * @LastEditTime: 2023-03-22 13:13:44
- * @FilePath: \Templete\src\requestErrorConfig.ts
+ * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
+ * @LastEditTime: 2024-03-18 10:53:53
+ * @FilePath: \Antd-pro-Templete\src\requestErrorConfig.ts
  * @Description: request错误处理
  *
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
@@ -71,8 +71,8 @@ export const errorConfig: RequestConfig = {
           window.localStorage.removeItem('userInfo');
           window.sessionStorage.removeItem('userInfo');
           const { location } = history;
-          if (location.pathname !== '/login') {
-            history.push('/login');
+          if (location.pathname !== '/user/login') {
+            history.push('/user/login');
           }
           return Promise.reject({
             errorMessage: data.msg,

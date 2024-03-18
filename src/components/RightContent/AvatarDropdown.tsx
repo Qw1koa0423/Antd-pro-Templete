@@ -1,9 +1,9 @@
 /*
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:39:51
- * @LastEditors: 刘浩奇 liuhaoqw1ko@gmail.com
- * @LastEditTime: 2023-03-29 18:02:47
- * @FilePath: \Templete\src\components\RightContent\AvatarDropdown.tsx
+ * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
+ * @LastEditTime: 2024-03-18 10:45:28
+ * @FilePath: \Antd-pro-Templete\src\components\RightContent\AvatarDropdown.tsx
  * @Description: HeaderRightContent配置
  *
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
@@ -17,7 +17,7 @@ import type { MenuInfo } from 'rc-menu/lib/interface';
 import React, { useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import HeaderDropdown from '../HeaderDropdown';
-
+const loginPath = '/user/login';
 export type GlobalHeaderRightProps = {
   menu?: boolean;
   children?: React.ReactNode;
@@ -41,9 +41,9 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({ children }) =
     /** 此方法会跳转到 redirect 参数所在的位置 */
     const redirect = urlParams.get('redirect');
     // Note: There may be security issues, please note
-    if (window.location.pathname !== '/login' && !redirect) {
+    if (window.location.pathname !== loginPath && !redirect) {
       history.replace({
-        pathname: '/login',
+        pathname: loginPath,
         search: stringify({
           redirect: pathname + search,
         }),
