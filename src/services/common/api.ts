@@ -8,7 +8,7 @@
  *
  * Copyright (c) 2024 by 遥在科技, All Rights Reserved.
  */
-import { request } from 'umi';
+import { request } from '@umijs/max';
 /**
  * @name 获取上传权限
  */

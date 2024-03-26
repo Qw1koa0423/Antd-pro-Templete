@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:44:59
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2024-03-18 11:35:14
+ * @LastEditTime: 2024-03-26 14:39:15
  * @FilePath: \Antd-pro-Templete\config\config.ts
  * @Description:  生产配置文件
  * @see: https://umijs.org/config/
@@ -123,10 +123,6 @@ export default defineConfig({
     // 解决首次加载时白屏的问题
     {
       src: '/scripts/loading.js',
-      async: true,
-    },
-    {
-      src: 'node_modules/@baiducloud/sdk/dist/baidubce-sdk.bundle.min.js',
       async: true,
     },
   ],

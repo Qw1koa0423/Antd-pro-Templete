@@ -57,7 +57,7 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
       },
     },
     waterMarkProps: {
-      content: initialState?.currentUser?.account,
+      content: initialState?.currentUser?.username,
     },
     onPageChange: () => {
       const { location } = history;
