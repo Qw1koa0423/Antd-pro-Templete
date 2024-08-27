@@ -54,13 +54,13 @@
     "not ie <= 10"
   ],
   "dependencies": {
-    "@ant-design/icons": "^5.3.7",
-    "@ant-design/pro-components": "^2.6.50",
+    "@ant-design/icons": "^5.4.0",
+    "@ant-design/pro-components": "^2.7.15",
     "@ant-design/use-emotion-css": "1.0.4",
     "@baiducloud/sdk": "^1.0.0-rc.42",
     "@playwright/test": "^1.31.2",
     "@umijs/route-utils": "^2.2.2",
-    "antd": "^5.18.3",
+    "antd": "^5.20.2",
     "classnames": "^2.3.1",
     "crypto-js": "^4.1.1",
     "dayjs": "^1.11.11",

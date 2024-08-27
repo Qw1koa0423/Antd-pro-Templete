@@ -2,8 +2,8 @@
  * @Author: Liu Haoqi liuhaoqw1ko@gmail.com
  * @Date: 2023-11-28 09:53:45
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2023-11-28 17:52:37
- * @FilePath: \park-walk-console\src\components\CustomSelect\index.tsx
+ * @LastEditTime: 2024-08-26 17:38:07
+ * @FilePath: \Antd-pro-Templete\src\components\CustomSelect\index.tsx
  * @Description:
  *
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
@@ -50,10 +50,9 @@ const CustomSelect = (props: Props) => {
               {menu}
               <Pagination
                 size="small"
-                style={{
-                  float: 'right',
-                }}
+                align="end"
                 hideOnSinglePage
+                showSizeChanger={false}
                 total={total}
                 pageSize={pageInfo?.pageSize}
                 current={pageInfo?.current}
