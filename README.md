@@ -250,16 +250,14 @@ declare namespace UserType {
 - [x] 每个文件都要有头部注释,注释内容包括作者,创建时间,修改人,修改时间,文件描述,如:
 
 ```bash
-<!--
- * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
- * @Date: 2023-03-22 11:39:51
- * @LastEditors: 刘浩奇 liuhaoqw1ko@gmail.com
- * @LastEditTime: 2023-03-30 14:52:12
- * @FilePath: \Templete\README.md
- * @Description:
- *
+/*
+ * @Author: 姓名 邮箱
+ * @Date: 创建时间
+ * @LastEditors: 最后编辑人
+ * @LastEditTime: 最后编辑时间
+ * @Description: 描述
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
--->
+*/
 
 ```
 
