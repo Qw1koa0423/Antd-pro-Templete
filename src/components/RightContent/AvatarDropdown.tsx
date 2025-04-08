@@ -1,39 +1,69 @@
-/*
- * @Author: 刘浩奇 liuhaoqi@yaozai.net
- * @Date: 2023-03-22 11:39:51
- * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2024-03-18 13:31:12
- * @FilePath: \Antd-pro-Templete\src\components\RightContent\AvatarDropdown.tsx
- * @Description: HeaderRightContent配置
- *
- * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
- */
-import { LogoutOutlined } from '@ant-design/icons';
+import { LockOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useEmotionCss } from '@ant-design/use-emotion-css';
 import { history, useModel } from '@umijs/max';
-import { Spin } from 'antd';
+import { Spin, message } from 'antd';
 import { stringify } from 'querystring';
 import type { MenuInfo } from 'rc-menu/lib/interface';
-import React, { useCallback } from 'react';
+import React, { Fragment, useCallback, useMemo, useState } from 'react';
 import { flushSync } from 'react-dom';
 import HeaderDropdown from '../HeaderDropdown';
+import { ModalForm, ProFormText } from '@ant-design/pro-components';
+import { resetPassword } from '@/services/login/api';
+import type { InitialStateType } from '@@/plugin-initialState/@@initialState';
+
 const loginPath = '/user/login';
+
 export type GlobalHeaderRightProps = {
   menu?: boolean;
   children?: React.ReactNode;
 };
 
-export const AvatarName = () => {
+export const AvatarName: React.FC = () => {
   const { initialState } = useModel('@@initialState');
   const { currentUser } = initialState || {};
   return <span className="anticon">{currentUser?.username}</span>;
 };
 
 export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({ children }) => {
+  const actionClassName = useEmotionCss(({ token }) => ({
+    display: 'flex',
+    height: '48px',
+    marginLeft: 'auto',
+    overflow: 'hidden',
+    alignItems: 'center',
+    padding: '0 8px',
+    cursor: 'pointer',
+    borderRadius: token.borderRadius,
+    '&:hover': {
+      backgroundColor: token.colorBgTextHover,
+    },
+  }));
+
+  const { initialState, setInitialState } = useModel('@@initialState');
+  const [open, setOpen] = useState<boolean>(false);
+  const [confirmLoading, setConfirmLoading] = useState<boolean>(false);
+
+  // 预先定义菜单项，避免条件渲染中使用 useMemo
+  const menuItems = useMemo(
+    () => [
+      {
+        key: 'reset',
+        icon: <LockOutlined />,
+        label: '重置密码',
+      },
+      {
+        key: 'logout',
+        icon: <LogoutOutlined />,
+        label: '退出登录',
+      },
+    ],
+    [],
+  );
+
   /**
    * 退出登录，并且将当前的 url 保存
    */
-  const loginOut = async () => {
+  const loginOut = useCallback(async () => {
     window.localStorage.removeItem('userInfo');
     window.sessionStorage.removeItem('userInfo');
     const { search, pathname } = window.location;
@@ -49,37 +79,46 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({ children }) =
         }),
       });
     }
+  }, []);
+
+  const onFinish = async (value: UserType.ResetPasswordParams) => {
+    setConfirmLoading(true);
+    try {
+      await resetPassword(value);
+      setOpen(false);
+      loginOut();
+      message.success('重置成功, 请重新登录！');
+    } catch (error: any) {
+      if (error?.errorMessage?.length > 0) {
+        message.error(error.errorMessage);
+      } else {
+        message.error('重置密码失败！');
+      }
+    } finally {
+      setConfirmLoading(false);
+    }
   };
-  const actionClassName = useEmotionCss(({ token }) => {
-    return {
-      display: 'flex',
-      height: '48px',
-      marginLeft: 'auto',
-      overflow: 'hidden',
-      alignItems: 'center',
-      padding: '0 8px',
-      cursor: 'pointer',
-      borderRadius: token.borderRadius,
-      '&:hover': {
-        backgroundColor: token.colorBgTextHover,
-      },
-    };
-  });
-  const { initialState, setInitialState } = useModel('@@initialState');
 
   const onMenuClick = useCallback(
     (event: MenuInfo) => {
       const { key } = event;
       if (key === 'logout') {
         flushSync(() => {
-          setInitialState((s) => ({ ...s, currentUser: undefined }));
+          setInitialState((s: InitialStateType) => ({
+            settings: s?.settings || {},
+            loading: s?.loading,
+            currentUser: undefined,
+          }));
         });
         loginOut();
         return;
       }
-      history.push(`/account/${key}`);
+      if (key === 'reset') {
+        setOpen(true);
+        return;
+      }
     },
-    [setInitialState],
+    [setInitialState, loginOut],
   );
 
   const loading = (
@@ -94,33 +133,90 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({ children }) =
     </span>
   );
 
-  if (!initialState) {
-    return loading;
-  }
+  const { currentUser } = initialState || {};
 
-  const { currentUser } = initialState;
-
+  // 如果用户未登录，显示加载状态
   if (!currentUser || !currentUser.username) {
     return loading;
   }
 
-  const menuItems = [
-    {
-      key: 'logout',
-      icon: <LogoutOutlined />,
-      label: '退出登录',
-    },
-  ];
-
   return (
-    <HeaderDropdown
-      menu={{
-        selectedKeys: [],
-        onClick: onMenuClick,
-        items: menuItems,
-      }}
-    >
-      {children}
-    </HeaderDropdown>
+    <Fragment>
+      <ModalForm<UserType.ResetPasswordParams>
+        width={500}
+        onFinish={onFinish}
+        title="密码重置"
+        open={open}
+        modalProps={{
+          destroyOnClose: true,
+          maskClosable: false,
+          onCancel: () => setOpen(false),
+        }}
+        submitter={{
+          submitButtonProps: {
+            loading: confirmLoading,
+          },
+        }}
+      >
+        <ProFormText.Password
+          label="旧密码"
+          placeholder="请输入旧密码"
+          required
+          name="oldPass"
+          rules={[
+            {
+              required: true,
+              message: '请输入旧密码！',
+            },
+          ]}
+        />
+        <ProFormText.Password
+          label="新密码"
+          placeholder="请输入新密码"
+          required
+          tooltip="必须包含大写字母、小写字母、数字，最小长度6位，最大长度10位"
+          name="newPass"
+          rules={[
+            {
+              required: true,
+              message: '请输入新密码！',
+            },
+            {
+              pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[^]{6,10}$/,
+              message: '请输入正确格式的密码！',
+            },
+          ]}
+        />
+        <ProFormText.Password
+          label="确认密码"
+          placeholder="请再次输入密码"
+          required
+          name="rePass"
+          rules={[
+            {
+              required: true,
+              message: '请再次输入密码！',
+            },
+            ({ getFieldValue }) => ({
+              validator(_, value) {
+                if (!value || getFieldValue('newPass') === value) {
+                  return Promise.resolve();
+                }
+                return Promise.reject(new Error('两次输入的密码不一致！'));
+              },
+            }),
+          ]}
+        />
+      </ModalForm>
+      <HeaderDropdown
+        menu={{
+          selectedKeys: [],
+          onClick: onMenuClick,
+          items: menuItems,
+        }}
+      >
+        {children}
+      </HeaderDropdown>
+    </Fragment>
   );
 };

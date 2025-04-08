@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:39:51
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2024-03-18 13:33:40
+ * @LastEditTime: 2025-04-08 10:48:21
  * @FilePath: \Antd-pro-Templete\src\pages\Login\index.tsx
  * @Description: 登录
  *
@@ -18,8 +18,10 @@ import { message } from 'antd';
 import React from 'react';
 import { flushSync } from 'react-dom';
 import Settings from '../../../config/defaultSettings';
+
 const LoginPage: React.FC = () => {
   const { setInitialState } = useModel('@@initialState');
+
   const containerClassName = useEmotionCss(() => {
     return {
       display: 'flex',
@@ -33,25 +35,24 @@ const LoginPage: React.FC = () => {
       backgroundSize: '100% 100%',
     };
   });
+
   const handleSubmit = async (values: UserType.LoginParams) => {
     try {
       // 登录
       const userInfo = await login({
         ...values,
       });
-      window.localStorage.setItem(
-        'userInfo',
-        JSON.stringify({ ...userInfo, username: values.username }),
-      );
-      window.sessionStorage.setItem(
-        'userInfo',
-        JSON.stringify({ ...userInfo, username: values.username }),
-      );
+
+      // 保存用户信息
+      const userData = { ...userInfo, username: values.username };
+      window.localStorage.setItem('userInfo', JSON.stringify(userData));
+      window.sessionStorage.setItem('userInfo', JSON.stringify(userData));
+
       if (userInfo) {
         flushSync(() => {
           setInitialState((s: any) => ({
             ...s,
-            currentUser: { ...userInfo, username: values.username },
+            currentUser: userData,
           }));
         });
         message.success('登录成功！');
@@ -59,13 +60,24 @@ const LoginPage: React.FC = () => {
         history.push('/');
       }
     } catch (error: any) {
-      if (error.errorMessage.length > 0) {
+      // 错误处理优化
+      if (error.errorMessage && error.errorMessage.length > 0) {
         message.error(error.errorMessage);
+      } else if (error.code) {
+        // 处理特定的错误代码
+        const errorMessages: { [key: string]: string } = {
+          '401': '用户名或密码错误',
+          '403': '账号已被禁用',
+          '429': '登录尝试次数过多，请稍后再试',
+          default: '登录失败，请重试',
+        };
+        message.error(errorMessages[error.code] || errorMessages.default);
       } else {
-        message.error('登录失败，请重试！');
+        message.error('登录失败，请检查网络连接');
       }
     }
   };
+
   return (
     <div className={containerClassName}>
       <Helmet>
@@ -75,7 +87,6 @@ const LoginPage: React.FC = () => {
       </Helmet>
       <div
         style={{
-          // flex: 1,
           marginBottom: 260,
           padding: '32px 0',
         }}
@@ -125,4 +136,5 @@ const LoginPage: React.FC = () => {
     </div>
   );
 };
+
 export default LoginPage;

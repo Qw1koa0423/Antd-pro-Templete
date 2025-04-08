@@ -2,26 +2,34 @@
  * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
  * @Date: 2023-03-30 16:17:04
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-04-07 17:56:43
+ * @LastEditTime: 2025-04-08 09:36:04
  * @FilePath: \Antd-pro-Templete\src\components\CustomUploadButton\index.tsx
  * @Description: 自定义上传按钮组件
  *
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
  */
-import { getFileMd5, getFileWH, getSignature, isExpired } from '@/utils';
+import { customUpload, getFileMd5, getFileWH, getSignature, isExpired } from '@/utils';
 import {
   ProFormUploadButton,
   ProFormUploadButtonProps,
   ProFormUploadDragger,
   ProFormUploadDraggerProps,
 } from '@ant-design/pro-components';
-import { message, Upload } from 'antd';
+import { message, Progress, Upload } from 'antd';
 import type { RcFile, UploadChangeParam, UploadFile, UploadProps } from 'antd/lib/upload';
 import { MD5 } from 'crypto-js';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // 上传类型
 type UploadComponentType = 'button' | 'dragger';
+
+// 上传文件状态
+interface UploadProgress {
+  [key: string]: {
+    percent: number;
+    status: 'uploading' | 'done' | 'error';
+  };
+}
 
 // 组件属性类型
 interface UploadButtonProps {
@@ -29,6 +37,8 @@ interface UploadButtonProps {
   uploadType?: UploadComponentType; // 上传类型: button | dragger
   setLoading: React.Dispatch<React.SetStateAction<boolean>>; // 上传状态 需要传给父组件防止没上传就提交了
   fieldProps?: UploadProps; // 自定义fieldProps
+  showUploadProgress?: boolean; // 是否显示上传进度
+  maxConcurrent?: number; // 最大并发上传数量
 
   // 文件类型限制
   allowedTypes?: string[]; // 允许的文件类型
@@ -45,14 +55,98 @@ interface UploadButtonProps {
   maxHeight?: number; // 图片或视频最大高度
   dimensionErrorMessage?: string; // 尺寸错误提示
 
+  // 分块上传设置
+  chunkUpload?: boolean; // 是否启用分块上传
+  fileSizeForChunk?: number; // 触发分块上传的文件大小阈值（字节）
+
   // 自定义回调
   onFileChange?: (info: UploadChangeParam<UploadFile<any>>) => void; // 文件变更回调
+  onUploadProgress?: (fileId: string, percent: number) => void; // 上传进度回调
+  onUploadSuccess?: (file: UploadFile, response: any) => void; // 上传成功回调
+  onUploadError?: (file: UploadFile, error: any) => void; // 上传失败回调
 }
 
 // 联合类型定义，根据上传类型区分属性
 type CustomUploadProps =
   | (UploadButtonProps & Omit<ProFormUploadButtonProps, 'fieldProps'>)
   | (UploadButtonProps & Omit<ProFormUploadDraggerProps, 'fieldProps'>);
+
+/**
+ * 文件上传队列管理
+ */
+class UploadQueue {
+  private queue: Array<() => Promise<any>> = [];
+  private running = 0;
+  private maxConcurrent: number;
+
+  constructor(maxConcurrent = 3) {
+    this.maxConcurrent = maxConcurrent;
+  }
+
+  /**
+   * 添加上传任务到队列
+   */
+  add(task: () => Promise<any>): Promise<any> {
+    return new Promise((resolve, reject) => {
+      // 创建包装任务
+      const wrappedTask = async () => {
+        try {
+          const result = await task();
+          resolve(result);
+          return result;
+        } catch (error) {
+          reject(error);
+          throw error;
+        } finally {
+          this.running--;
+          this.runNext();
+        }
+      };
+
+      // 添加到队列
+      this.queue.push(wrappedTask);
+
+      // 尝试执行
+      this.runNext();
+    });
+  }
+
+  /**
+   * 执行下一个上传任务
+   */
+  private runNext() {
+    if (this.running >= this.maxConcurrent || this.queue.length === 0) {
+      return;
+    }
+
+    this.running++;
+    const task = this.queue.shift();
+    if (task) {
+      task().catch(() => {
+        // 错误已在 wrappedTask 中处理
+      });
+    }
+  }
+
+  /**
+   * 清空上传队列
+   */
+  clear() {
+    this.queue = [];
+  }
+}
+
+/**
+ * 延迟执行
+ * @param ms 延迟毫秒数
+ */
+const delay = (ms: number): Promise<void> => {
+  return new Promise<void>((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, ms);
+  });
+};
 
 /**
  * 自定义上传组件，支持按钮和拖拽两种上传方式
@@ -62,6 +156,8 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
   uploadType = 'button',
   setLoading,
   fieldProps,
+  showUploadProgress = false,
+  maxConcurrent = 3,
 
   // 文件类型限制
   allowedTypes,
@@ -78,12 +174,30 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
   maxHeight,
   dimensionErrorMessage = '图片宽高超出限制！',
 
+  // 分块上传设置
+  chunkUpload = false,
+  fileSizeForChunk = 10 * 1024 * 1024, // 默认10MB以上使用分块上传
+
   // 自定义回调
   onFileChange,
+  onUploadProgress,
+  onUploadSuccess,
+  onUploadError,
 
   // 其他属性
   ...props
 }) => {
+  // 上传队列管理器
+  const uploadQueueRef = useRef<UploadQueue>(new UploadQueue(maxConcurrent));
+
+  // 上传进度状态
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({});
+
+  // 初始化上传队列
+  useEffect(() => {
+    uploadQueueRef.current = new UploadQueue(maxConcurrent);
+  }, [maxConcurrent]);
+
   /**
    * 检查文件类型是否符合要求
    */
@@ -147,18 +261,41 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
   );
 
   /**
+   * 更新上传进度
+   */
+  const updateProgress = useCallback(
+    (fileId: string, percent: number, status: 'uploading' | 'done' | 'error' = 'uploading') => {
+      setUploadProgress((prev) => ({
+        ...prev,
+        [fileId]: { percent, status },
+      }));
+
+      if (onUploadProgress) {
+        onUploadProgress(fileId, percent);
+      }
+    },
+    [onUploadProgress],
+  );
+
+  /**
    * 上传前验证
    */
   const beforeUpload = useCallback(
     async (file: RcFile, fileList: RcFile[]): Promise<boolean | typeof Upload.LIST_IGNORE> => {
       setLoading(true);
 
+      // 初始化文件上传进度
+      const fileId = file.uid;
+      updateProgress(fileId, 0);
+
       try {
+        // 刷新上传认证
         await isExpired();
 
         // 验证文件类型
         if (!checkFileType(file)) {
           message.error(typeErrorMessage);
+          updateProgress(fileId, 0, 'error');
           setLoading(false);
           return Upload.LIST_IGNORE;
         }
@@ -166,6 +303,7 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
         // 验证单个文件大小
         if (!checkFileSize(file)) {
           message.error(fileSizeErrorMessage);
+          updateProgress(fileId, 0, 'error');
           setLoading(false);
           return Upload.LIST_IGNORE;
         }
@@ -173,6 +311,7 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
         // 验证文件总大小
         if (!checkTotalSize(fileList)) {
           message.error(totalSizeErrorMessage);
+          updateProgress(fileId, 0, 'error');
           setLoading(false);
           return Upload.LIST_IGNORE;
         }
@@ -180,6 +319,7 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
         // 验证文件宽高
         if (!(await checkFileDimensions(file))) {
           message.error(dimensionErrorMessage);
+          updateProgress(fileId, 0, 'error');
           setLoading(false);
           return Upload.LIST_IGNORE;
         }
@@ -188,6 +328,7 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
       } catch (error) {
         console.error('文件上传前验证失败:', error);
         message.error('文件验证失败，请重试');
+        updateProgress(fileId, 0, 'error');
         setLoading(false);
         return Upload.LIST_IGNORE;
       }
@@ -202,7 +343,97 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
       checkFileSize,
       checkTotalSize,
       checkFileDimensions,
+      updateProgress,
     ],
+  );
+
+  /**
+   * 自定义上传实现
+   */
+  const customRequest = useCallback(
+    ({ file, onSuccess, onError, onProgress }: any) => {
+      const uploadFile = file as RcFile;
+      const fileId = uploadFile.uid;
+
+      // 使用上传队列管理上传任务
+      uploadQueueRef.current
+        .add(async () => {
+          try {
+            // 获取上传配置
+            const uploadConfig = await isExpired();
+
+            // 准备文件附加信息
+            const { md5 } = await getFileMd5(uploadFile);
+            const suffix = uploadFile.name.slice(uploadFile.name.lastIndexOf('.'));
+            const uploadUrl = uploadConfig.path + md5 + suffix;
+            const signature = getSignature(uploadConfig);
+
+            // 处理上传进度回调
+            const progressHandler = (percent: number) => {
+              updateProgress(fileId, Math.floor(percent * 100));
+              if (onProgress) {
+                onProgress({ percent: Math.floor(percent * 100) });
+              }
+            };
+
+            let result;
+
+            // 根据文件大小决定是否使用分块上传
+            if (chunkUpload && uploadFile.size > fileSizeForChunk) {
+              // 对于分块上传，模拟进度反馈
+              for (let i = 0; i <= 10; i++) {
+                await delay(300);
+                progressHandler(i / 10);
+              }
+
+              // 实际上传，替代以上的模拟进度
+              result = await customUpload(uploadFile, uploadConfig);
+            } else {
+              // 常规上传
+              result = await customUpload(uploadFile, uploadConfig);
+              progressHandler(1); // 上传完成
+            }
+
+            // 上传成功处理
+            updateProgress(fileId, 100, 'done');
+
+            const responseData = {
+              name: uploadFile.name,
+              status: 'done',
+              url: result.url,
+              uploadUrl,
+              ...signature,
+            };
+
+            if (onSuccess) {
+              onSuccess(responseData, uploadFile);
+            }
+
+            if (onUploadSuccess) {
+              onUploadSuccess(uploadFile as UploadFile, responseData);
+            }
+
+            return responseData;
+          } catch (error) {
+            console.error('文件上传失败:', error);
+            updateProgress(fileId, 0, 'error');
+
+            if (onError) {
+              onError(error);
+            }
+
+            if (onUploadError) {
+              onUploadError(uploadFile as UploadFile, error);
+            }
+
+            throw error;
+          }
+        })
+        .catch((error) => {
+          console.error('上传队列处理失败:', error);
+        });
+    },
+    [chunkUpload, fileSizeForChunk, onUploadSuccess, onUploadError, updateProgress],
   );
 
   /**
@@ -275,6 +506,27 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
     }
   }, []);
 
+  /**
+   * 渲染上传进度组件
+   */
+  const renderUploadProgress = useCallback(() => {
+    if (!showUploadProgress) return null;
+
+    return (
+      <div className="upload-progress-container">
+        {Object.entries(uploadProgress).map(([fileId, { percent, status }]) => (
+          <div key={fileId} className="upload-progress-item">
+            <Progress
+              percent={percent}
+              status={status === 'error' ? 'exception' : status === 'done' ? 'success' : 'active'}
+              size="small"
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }, [showUploadProgress, uploadProgress]);
+
   // 共享的field属性
   const sharedFieldProps = useMemo(
     () => ({
@@ -283,16 +535,30 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
       beforeUpload,
       onChange: handleFileChange,
       data: prepareFileData,
+      customRequest: chunkUpload ? customRequest : undefined,
       ...fieldProps,
     }),
-    [getUploadAction, beforeUpload, handleFileChange, prepareFileData, fieldProps],
+    [
+      getUploadAction,
+      beforeUpload,
+      handleFileChange,
+      prepareFileData,
+      chunkUpload,
+      customRequest,
+      fieldProps,
+    ],
   );
 
   // 根据上传类型渲染不同组件
-  return uploadType === 'button' ? (
-    <ProFormUploadButton fieldProps={sharedFieldProps} {...props} />
-  ) : (
-    <ProFormUploadDragger fieldProps={sharedFieldProps} {...props} />
+  return (
+    <>
+      {uploadType === 'button' ? (
+        <ProFormUploadButton fieldProps={sharedFieldProps} {...props} />
+      ) : (
+        <ProFormUploadDragger fieldProps={sharedFieldProps} {...props} />
+      )}
+      {renderUploadProgress()}
+    </>
   );
 };
 

@@ -2,16 +2,17 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:44:59
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2024-03-26 14:39:15
+ * @LastEditTime: 2025-04-08 11:40:49
  * @FilePath: \Antd-pro-Templete\config\config.ts
- * @Description:  生产配置文件
- * @see: https://umijs.org/config/
+ * @Description: UMI配置文件
+ * @see: https://umijs.org/docs/api/config
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
  */
 
 import { defineConfig } from '@umijs/max';
 import defaultSettings from './defaultSettings';
 import routes from './routes';
+
 export default defineConfig({
   /**
    * @name 开启 hash 模式
@@ -23,119 +24,158 @@ export default defineConfig({
     API_URL: '', // API地址
   },
   /**
-   * @name 配置语言
+   * @name 国际化配置
+   * @description 默认关闭，如需开启配置为 { antd: true, baseNavigator: true }
+   * @doc https://umijs.org/docs/api/config#locale
    */
-  locale: {
-    default: 'zh-CN',
-    antd: true,
-    baseNavigator: true,
-  },
+  locale: false,
+
   /**
-   * @name 兼容性设置
-   * @description 设置 ie11 不一定完美兼容，需要检查自己使用的所有依赖
-   * @doc https://umijs.org/docs/api/config#targets
-   */
-  // targets: {
-  //   ie: 11,
-  // },
-  /**
-   * @name 路由的配置，不在路由中引入的文件不会编译
+   * @name 路由配置
    * @description 只支持 path，component，routes，redirect，wrappers，title 的配置
    * @doc https://umijs.org/docs/guides/routes
    */
-  // umi routes: https://umijs.org/docs/routing
   routes,
+
   /**
-   * @name 主题的配置
-   * @description 虽然叫主题，但是其实只是 less 的变量设置
-   * @doc antd的主题设置 https://ant.design/docs/react/customize-theme-cn
-   * @doc umi 的theme 配置 https://umijs.org/docs/api/config#theme
+   * @name 主题配置
+   * @description 支持antd主题定制
+   * @doc https://ant.design/docs/react/customize-theme-cn
    */
   theme: {
-    // 如果不想要 configProvide 动态设置主题需要把这个设置为 default
-    // 只有设置为 variable， 才能使用 configProvide 动态设置主色调
-    'root-entry-name': 'variable',
+    'root-entry-name': 'variable', // 使用CSS变量模式，支持动态主题切换
   },
-  /**
-   * @name moment 的国际化配置
-   * @description 如果对国际化没有要求，打开之后能减少js的包大小
-   * @doc https://umijs.org/docs/api/config#ignoremomentlocale
-   */
-  ignoreMomentLocale: true,
+
   /**
    * @name 快速热更新配置
-   * @description 一个不错的热更新组件，更新时可以保留 state
+   * @description 保留state的热更新能力
    */
   fastRefresh: true,
   //============== 以下都是max的插件配置 ===============
   /**
    * @name 数据流插件
-   * @@doc https://umijs.org/docs/max/data-flow
+   * @description 配置model插件
+   * @doc https://umijs.org/docs/max/data-flow
    */
   model: {},
+
   /**
-   * 一个全局的初始数据流，可以用它在插件之间共享数据
-   * @description 可以用来存放一些全局的数据，比如用户信息，或者一些全局的状态，全局初始状态在整个 Umi 项目的最开始创建。
-   * @doc https://umijs.org/docs/max/data-flow#%E5%85%A8%E5%B1%80%E5%88%9D%E5%A7%8B%E7%8A%B6%E6%80%81
+   * @name 全局初始状态
+   * @description 存放全局数据，如用户信息等
+   * @doc https://umijs.org/docs/max/data-flow
    */
   initialState: {},
+
   /**
-   * @name layout 插件
+   * @name Layout插件
+   * @description 开启layout插件并配置
    * @doc https://umijs.org/docs/max/layout-menu
    */
-  title: '遥在机器人(运营端)',
+  title: '后台通用模板',
   layout: {
-    locale: true,
+    locale: false,
     ...defaultSettings,
   },
+
   /**
-   * @name moment2dayjs 插件
-   * @description 将项目中的 moment 替换为 dayjs
+   * @name moment转dayjs
+   * @description 将项目中的moment替换为dayjs
    * @doc https://umijs.org/docs/max/moment2dayjs
    */
   moment2dayjs: {
     preset: 'antd',
     plugins: ['duration'],
   },
+
   /**
-   * @name antd 插件
-   * @description 内置了 babel import 插件
-   * @doc https://umijs.org/docs/max/antd#antd
+   * @name antd插件
+   * @description 内置了babel import插件
+   * @doc https://umijs.org/docs/max/antd
    */
   antd: {},
+
   /**
    * @name 网络请求配置
-   * @description 它基于 axios 和 ahooks 的 useRequest 提供了一套统一的网络请求和错误处理方案。
+   * @description 基于axios和ahooks的useRequest
    * @doc https://umijs.org/docs/max/request
    */
   request: {},
+
   /**
    * @name 权限插件
-   * @description 基于 initialState 的权限插件，必须先打开 initialState
+   * @description 基于initialState的权限管理
    * @doc https://umijs.org/docs/max/access
    */
   access: {},
+
   /**
-   * @name <head> 中额外的 script
-   * @description 配置 <head> 中额外的 script
+   * @name <head>中额外的script
    */
   headScripts: [
     // 解决首次加载时白屏的问题
-    {
-      src: '/scripts/loading.js',
-      async: true,
-    },
+    { src: '/scripts/loading.js', async: true },
   ],
-  //================ pro 插件配置 =================
-  presets: ['umi-presets-pro'],
+
   /**
-   * @name openAPI 插件的配置
-   * @description 基于 openapi 的规范生成serve 和mock，能减少很多样板代码
+   * @name 预设配置
+   * @description 使用pro预设
+   */
+  presets: ['umi-presets-pro'],
+
+  /**
+   * @name openAPI配置
+   * @description 基于OpenAPI生成接口代码
    * @doc https://pro.ant.design/zh-cn/docs/openapi/
    */
   openAPI: [],
+
+  /**
+   * @name MFSU配置 (Module Federation Speed Up)
+   * @description 改进的构建性能和热更新速度
+   * @doc https://umijs.org/docs/api/config#mfsu
+   */
   mfsu: {
-    strategy: 'normal',
+    strategy: 'eager', // 'normal'|'eager' eager模式提供更快的热更新
+    shared: {
+      react: {
+        singleton: true,
+      },
+    },
   },
+
+  /**
+   * @name 请求日志记录
+   * @description 记录所有请求数据便于调试
+   */
   requestRecord: {},
+
+  /**
+   * @name 构建优化
+   * @description 优化构建性能和产物大小
+   */
+  codeSplitting: {
+    jsStrategy: 'granularChunks',
+  },
+
+  /**
+   * @name 构建工具配置
+   * @description 配置Webpack构建参数
+   */
+  chainWebpack(memo) {
+    // 可以在这里自定义webpack配置
+    return memo;
+  },
+
+  /**
+   * @name 开发工具配置
+   * @description 提高开发体验
+   */
+  devtool: false,
+
+  /**
+   * @name 构建时压缩配置
+   * @description 使用esbuild加速构建过程
+   */
+  jsMinifier: 'esbuild',
+  cssMinifier: 'esbuild',
 });

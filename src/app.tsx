@@ -1,8 +1,8 @@
 /*
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:39:51
- * @LastEditors: 刘浩奇 liuhaoqi@insitpace.com
- * @LastEditTime: 2023-11-14 10:19:10
+ * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
+ * @LastEditTime: 2025-04-08 10:50:37
  * @FilePath: \Antd-pro-Templete\src\app.tsx
  * @Description: 项目入口
  *
@@ -15,40 +15,60 @@ import defaultSettings from '../config/defaultSettings';
 import { AvatarDropdown, AvatarName } from './components/RightContent/AvatarDropdown';
 import { errorConfig } from './requestErrorConfig';
 
+// 登录路径常量
 const loginPath = '/user/login';
 
 /**
- * @see  https://umijs.org/zh-CN/plugins/plugin-initial-state
- * */
+ * 获取应用初始状态
+ * @see https://umijs.org/zh-CN/plugins/plugin-initial-state
+ */
 export async function getInitialState(): Promise<{
-  settings?: Partial<LayoutSettings>;
-  currentUser?: UserType.LoginParams;
+  settings: Partial<LayoutSettings>;
+  currentUser?: UserType.LoginResponse & { username: string };
   loading?: boolean;
 }> {
-  // 如果不是登录页面，执行
   const { location } = history;
-  if (location.pathname !== loginPath) {
-    let currentUser: any = undefined;
-    const storage =
-      window.sessionStorage.getItem('userInfo') || window.localStorage.getItem('userInfo');
-    if (!storage) {
-      history.push(loginPath);
-    } else {
-      currentUser = JSON.parse(storage);
-    }
-    return {
-      currentUser,
-      settings: defaultSettings as Partial<LayoutSettings>,
-    };
-  }
-  return {
+
+  // 默认返回值
+  const defaultState = {
     settings: defaultSettings as Partial<LayoutSettings>,
   };
+
+  // 如果在登录页，则只返回默认配置
+  if (location.pathname === loginPath) {
+    return defaultState;
+  }
+
+  // 尝试获取用户信息
+  try {
+    // 从requestErrorConfig中导入getUserInfo函数
+    const userInfo = window.__GLOBAL_DATA__?.getUserInfo?.() || null;
+
+    // 如果没有用户信息，重定向到登录页
+    if (!userInfo) {
+      history.push(loginPath);
+      return defaultState;
+    }
+
+    // 返回带有用户信息的状态
+    return {
+      ...defaultState,
+      currentUser: userInfo as UserType.LoginResponse & { username: string },
+    };
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
+    history.push(loginPath);
+    return defaultState;
+  }
 }
 
-// ProLayout 支持的api https://procomponents.ant.design/components/layout
+/**
+ * ProLayout 布局配置
+ * @see https://procomponents.ant.design/components/layout
+ */
 export const layout: RunTimeLayoutConfig = ({ initialState }) => {
   return {
+    // 头像配置
     avatarProps: {
       src: '/avatar.png',
       title: <AvatarName />,
@@ -56,16 +76,24 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
         return <AvatarDropdown>{avatarChildren}</AvatarDropdown>;
       },
     },
-    waterMarkProps: {
-      content: initialState?.currentUser?.username,
-    },
+
+    // 水印配置
+    waterMarkProps: initialState?.currentUser?.username
+      ? {
+          content: initialState.currentUser.username,
+        }
+      : undefined,
+
+    // 页面切换时的权限验证
     onPageChange: () => {
       const { location } = history;
-      // 如果没有登录，重定向到 login
+      // 如果没有登录且不在登录页，则重定向到登录页
       if (!initialState?.currentUser && location.pathname !== loginPath) {
         history.push(loginPath);
       }
     },
+
+    // 布局背景图片配置
     layoutBgImgList: [
       {
         src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/D2LWSqNny4sAAAAAAAAAAAAAFl94AQBr',
@@ -86,24 +114,57 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
         width: '331px',
       },
     ],
+
+    // 链接配置
     links: [],
+
+    // 菜单头部渲染
     menuHeaderRender: undefined,
-    // 自定义 403 页面
+
+    // 自定义403页面（暂时注释）
     // unAccessible: <div>unAccessible</div>,
-    // 增加一个 loading 的状态
+
+    // 子组件渲染
     childrenRender: (children) => {
+      // 加载状态处理（暂时注释）
       // if (initialState?.loading) return <PageLoading />;
       return <>{children}</>;
     },
+
+    // 合并初始状态中的设置
     ...initialState?.settings,
   };
 };
 
 /**
- * @name request 配置，可以配置错误处理
- * 它基于 axios 和 ahooks 的 useRequest 提供了一套统一的网络请求和错误处理方案。
- * @doc https://umijs.org/docs/max/request#配置
+ * 请求配置
+ * @see https://umijs.org/docs/max/request
  */
 export const request = {
   ...errorConfig,
+};
+
+// 全局命名空间声明
+declare global {
+  interface Window {
+    __GLOBAL_DATA__?: {
+      getUserInfo?: () => any;
+    };
+  }
+}
+
+// 初始化全局函数
+window.__GLOBAL_DATA__ = {
+  // 从requestErrorConfig导入的getUserInfo函数
+  getUserInfo: () => {
+    const storage =
+      window.sessionStorage.getItem('userInfo') || window.localStorage.getItem('userInfo');
+
+    try {
+      return storage ? JSON.parse(storage) : null;
+    } catch (error) {
+      console.error('解析用户信息失败:', error);
+      return null;
+    }
+  },
 };
