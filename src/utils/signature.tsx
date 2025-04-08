@@ -2,8 +2,8 @@
  * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
  * @Date: 2023-03-31 11:14:46
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-04-08 10:30:15
- * @FilePath: \Templete\src\utils\signature.tsx
+ * @LastEditTime: 2025-04-08 14:17:39
+ * @FilePath: \Antd-pro-Templete\src\utils\signature.tsx
  * @Description: 云存储签名生成工具
  *
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
@@ -112,8 +112,11 @@ const bosSignature = (config: ConfigProps): BosSignature => {
     }
 
     // BOS策略定义
+    const expirationDate = new Date(Date.now() + 900000);
+    const formattedDate = expirationDate.toISOString().replace(/\.\d+Z$/, 'Z');
+
     const policyText = {
-      expiration: new Date(Date.now() + 900000).toISOString(), // 15分钟后过期
+      expiration: formattedDate,
       conditions: [
         { bucket: config.bucket },
         ['content-length-range', 0, 1073741824], // 最大1GB

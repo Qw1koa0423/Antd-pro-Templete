@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:39:51
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-04-08 10:48:21
+ * @LastEditTime: 2025-04-08 13:35:58
  * @FilePath: \Antd-pro-Templete\src\pages\Login\index.tsx
  * @Description: 登录
  *
@@ -39,12 +39,16 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (values: UserType.LoginParams) => {
     try {
       // 登录
-      const userInfo = await login({
+      const res = await login({
         ...values,
       });
-
+      const userInfo = res.data; // 获取实际的业务数据
+      console.log('userInfo', userInfo);
       // 保存用户信息
-      const userData = { ...userInfo, username: values.username };
+      const userData = {
+        ...userInfo,
+        username: values.username,
+      };
       window.localStorage.setItem('userInfo', JSON.stringify(userData));
       window.sessionStorage.setItem('userInfo', JSON.stringify(userData));
 

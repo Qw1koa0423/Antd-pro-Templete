@@ -3,21 +3,21 @@ import type { ProFormSelectProps } from '@ant-design/pro-components';
 import { Pagination, ConfigProvider } from 'antd';
 import { useCallback, useState, useMemo, memo, useEffect } from 'react';
 
-type Props = Omit<ProFormSelectProps, 'fieldProps' | 'request'> & {
-  _fieldProps: ProFormSelectProps['fieldProps'];
-  _request: (params: API.PageRequest) => Promise<API.PageResponse<any>>;
-  _params?: Record<string, any>;
+type CustomSelectProps = Omit<ProFormSelectProps, 'fieldProps' | 'request'> & {
+  selectProps?: ProFormSelectProps['fieldProps'];
+  fetchData: (params: API.PageRequest) => Promise<API.PageResponse<any>>;
+  queryParams?: Record<string, any>;
   defaultPageSize?: number;
-  _fetchLabelByValue?: (value: any) => Promise<{ label: React.ReactNode; value: any }>;
+  fetchLabelByValue?: (value: any) => Promise<{ label: React.ReactNode; value: any }>;
 };
 
-const CustomSelect = memo((props: Props) => {
+const CustomSelect = memo((props: CustomSelectProps) => {
   const {
-    _fieldProps,
-    _request,
-    _params,
+    selectProps = {},
+    fetchData,
+    queryParams,
     defaultPageSize = 8,
-    _fetchLabelByValue,
+    fetchLabelByValue,
     ...restProps
   } = props;
 
@@ -34,27 +34,27 @@ const CustomSelect = memo((props: Props) => {
 
   useEffect(() => {
     const fetchInitialLabel = async () => {
-      const currentValue = _fieldProps?.value;
+      const currentValue = selectProps?.value;
 
-      if (currentValue !== undefined && currentValue !== null && _fetchLabelByValue) {
+      if (currentValue !== undefined && currentValue !== null && fetchLabelByValue) {
         try {
           if (Array.isArray(currentValue)) {
             const options = await Promise.all(
-              currentValue.map((value) => _fetchLabelByValue(value)),
+              currentValue.map((value) => fetchLabelByValue(value)),
             );
             setInitialOptions(options);
           } else {
-            const option = await _fetchLabelByValue(currentValue);
+            const option = await fetchLabelByValue(currentValue);
             setInitialOptions([option]);
           }
         } catch (error) {
-          console.error('获取初始label失败:', error);
+          console.error('获取初始标签失败:', error);
         }
       }
     };
 
     fetchInitialLabel();
-  }, [_fieldProps?.value, _fetchLabelByValue]);
+  }, [selectProps?.value, fetchLabelByValue]);
 
   const resetPagination = useCallback(() => {
     setPageInfo({
@@ -66,15 +66,15 @@ const CustomSelect = memo((props: Props) => {
   const requestParams = useMemo(
     () => ({
       ...pageInfo,
-      ..._params,
+      ...queryParams,
     }),
-    [pageInfo, _params],
+    [pageInfo, queryParams],
   );
 
   const handleRequest = useCallback(
     async (params: any) => {
       try {
-        const response = await _request?.(params);
+        const response = await fetchData?.(params);
 
         if (response) {
           const { list = [], current, pageSize, total = 0 } = response;
@@ -105,11 +105,11 @@ const CustomSelect = memo((props: Props) => {
 
         return initialOptions.length > 0 ? initialOptions : [];
       } catch (error) {
-        console.error('CustomSelect request error:', error);
+        console.error('CustomSelect 请求数据错误:', error);
         return initialOptions.length > 0 ? initialOptions : [];
       }
     },
-    [_request, defaultPageSize, initialOptions],
+    [fetchData, defaultPageSize, initialOptions],
   );
 
   const PaginationComponent = useMemo(
@@ -145,16 +145,16 @@ const CustomSelect = memo((props: Props) => {
 
   const mergedFieldProps = useMemo(
     () => ({
-      ..._fieldProps,
+      ...selectProps,
       onSearch: resetPagination,
       onFocus: resetPagination,
       dropdownRender,
       getPopupContainer:
-        _fieldProps?.getPopupContainer || ((triggerNode) => triggerNode.parentElement),
+        selectProps?.getPopupContainer || ((triggerNode) => triggerNode.parentElement),
       options:
-        initialOptions.length > 0 && !_fieldProps?.options ? initialOptions : _fieldProps?.options,
+        initialOptions.length > 0 && !selectProps?.options ? initialOptions : selectProps?.options,
     }),
-    [_fieldProps, resetPagination, dropdownRender, initialOptions],
+    [selectProps, resetPagination, dropdownRender, initialOptions],
   );
 
   return (

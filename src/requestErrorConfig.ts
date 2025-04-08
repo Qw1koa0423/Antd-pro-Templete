@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:39:51
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-04-07 16:40:29
+ * @LastEditTime: 2025-04-08 13:34:22
  * @FilePath: \Antd-pro-Templete\src\requestErrorConfig.ts
  * @Description: request错误处理
  *
@@ -64,7 +64,7 @@ const authHeaderInterceptor = (config: AxiosRequestConfig) => {
   }
 
   const userInfo = getUserInfo();
-
+  console.log('userInfo', userInfo);
   if (userInfo?.token) {
     authHeader['X-Auth-Token'] = userInfo.token;
   }
@@ -172,13 +172,15 @@ export const errorConfig: RequestConfig = {
         });
       }
 
-      // 成功响应处理 - 保持原始响应结构，但添加业务字段
+      // 成功响应处理 - 只返回接口文档中定义的data字段内容
+      // 保留原始响应结构，以满足Axios类型要求
       return {
         ...response,
         data: {
-          ...data,
           success: true,
+          data: data.data,
           errorMessage: '',
+          errorCode: 0,
         },
       };
     },

@@ -60,9 +60,9 @@ const MAX_RETRY_COUNT = 3;
  */
 export const getUploadAuth = async (): Promise<CommonType.AuthResponse> => {
   try {
-    const auth = await getAuth();
-    localStorage.setItem(UPLOAD_DATA_KEY, JSON.stringify(auth));
-    return auth;
+    const { data } = await getAuth();
+    localStorage.setItem(UPLOAD_DATA_KEY, JSON.stringify(data));
+    return data;
   } catch (error) {
     console.error('获取上传认证失败:', error);
     throw error;
@@ -81,7 +81,23 @@ const isExpired = async (): Promise<CommonType.AuthResponse> => {
 
     // 检查是否过期，并添加缓冲时间
     const now = Date.now();
-    const expireTime = (uploadData.expiredTime || 0) * 1000;
+
+    // 检查expiredTime是否为数字类型，如果不是，尝试转换或请求新token
+    let expireTime: number;
+    if (typeof uploadData.expiredTime === 'number') {
+      expireTime = uploadData.expiredTime * 1000; // 转换为毫秒
+    } else if (typeof uploadData.expiredTime === 'string') {
+      // 尝试将字符串转换为数字
+      expireTime = parseInt(uploadData.expiredTime, 10) * 1000;
+      if (isNaN(expireTime)) {
+        console.warn('无效的过期时间格式，将获取新认证', uploadData.expiredTime);
+        return await getUploadAuth();
+      }
+    } else {
+      // 没有有效的过期时间
+      return await getUploadAuth();
+    }
+
     const isTokenExpired = !uploadData.expiredTime || expireTime - now < EXPIRATION_BUFFER_TIME;
 
     if (isTokenExpired) {
