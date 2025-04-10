@@ -305,6 +305,87 @@ const Demo = () => {
 export default Demo;
 ```
 
+### 直接提供选项数据（不需要远程获取）
+
+如果您已经有所有的选项数据，可以直接通过`selectProps.options`提供，而不需要使用`fetchData`：
+
+```tsx
+import React from 'react';
+import CustomSelect from '@/components/CustomSelect';
+import { ProForm } from '@ant-design/pro-components';
+
+const Demo = () => {
+  // 静态选项数据
+  const departmentOptions = [
+    { label: '研发部', value: '123' },
+    { label: '市场部', value: '456' },
+    { label: '财务部', value: '789' },
+  ];
+
+  return (
+    <ProForm
+      initialValues={{
+        departmentId: '123',
+      }}
+    >
+      <ProForm.Item name="departmentId" label="选择部门">
+        <CustomSelect
+          placeholder="请选择部门"
+          selectProps={{
+            options: departmentOptions,
+          }}
+        />
+      </ProForm.Item>
+    </ProForm>
+  );
+};
+
+export default Demo;
+```
+
+### 带初始选中值的静态数据
+
+```tsx
+import React from 'react';
+import CustomSelect from '@/components/CustomSelect';
+import { ProForm } from '@ant-design/pro-components';
+
+const Demo = () => {
+  // 静态选项数据
+  const roleOptions = [
+    { label: '管理员', value: 'admin' },
+    { label: '编辑', value: 'editor' },
+    { label: '访客', value: 'guest' },
+  ];
+
+  return (
+    <ProForm
+      initialValues={{
+        // 对象形式的初始值
+        roleId: { label: '管理员', value: 'admin' },
+      }}
+    >
+      <ProForm.Item
+        name="roleId"
+        label="选择角色"
+        transform={(value) =>
+          value && typeof value === 'object' && 'value' in value ? value.value : value
+        }
+      >
+        <CustomSelect
+          placeholder="请选择角色"
+          selectProps={{
+            options: roleOptions,
+          }}
+        />
+      </ProForm.Item>
+    </ProForm>
+  );
+};
+
+export default Demo;
+```
+
 ## API
 
 ### 组件属性
@@ -312,7 +393,7 @@ export default Demo;
 | 属性名 | 说明 | 类型 | 默认值 |
 | --- | --- | --- | --- |
 | selectProps | Select组件属性（可选） | `SelectProps` | `{}` |
-| fetchData | 数据请求函数 | `(params: API.PageRequest) => Promise<API.PageResponse<any>>` | - |
+| fetchData | 数据请求函数（当使用options提供所有选项时可选） | `(params: API.PageRequest) => Promise<API.PageResponse<any>>` | - |
 | queryParams | 额外的查询参数 | `Record<string, any>` | - |
 | defaultPageSize | 默认分页大小 | `number` | `8` |
 | fetchLabelByValue | 根据值获取标签的函数 | `(value: any) => Promise<{ label: React.ReactNode; value: any }>` | - |

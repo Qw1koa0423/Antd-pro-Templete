@@ -5,7 +5,7 @@ import { useCallback, useState, useMemo, memo, useEffect } from 'react';
 
 type CustomSelectProps = Omit<ProFormSelectProps, 'fieldProps' | 'request'> & {
   selectProps?: ProFormSelectProps['fieldProps'];
-  fetchData: (params: API.PageRequest) => Promise<API.PageResponse<any>>;
+  fetchData?: (params: API.PageRequest) => Promise<API.PageResponse<any>>;
   queryParams?: Record<string, any>;
   defaultPageSize?: number;
   fetchLabelByValue?: (value: any) => Promise<{ label: React.ReactNode; value: any }>;
@@ -73,8 +73,30 @@ const CustomSelect = memo((props: CustomSelectProps) => {
 
   const handleRequest = useCallback(
     async (params: any) => {
+      // 过滤函数，确保返回的选项符合类型要求
+      const filterValidOptions = (options: any[]) =>
+        options.filter((item) => item && item.value !== null && item.value !== undefined);
+
+      if (!fetchData && selectProps.options) {
+        const mergedOptions =
+          initialOptions.length > 0
+            ? [
+                ...initialOptions,
+                ...selectProps.options.filter(
+                  (item) => !initialOptions.some((option) => option.value === item.value),
+                ),
+              ]
+            : selectProps.options;
+
+        return filterValidOptions(mergedOptions);
+      }
+
+      if (!fetchData) {
+        return filterValidOptions(initialOptions);
+      }
+
       try {
-        const response = await fetchData?.(params);
+        const response = await fetchData(params);
 
         if (response) {
           const { list = [], current, pageSize, total = 0 } = response;
@@ -93,23 +115,26 @@ const CustomSelect = memo((props: CustomSelectProps) => {
             };
           });
 
-          return initialOptions.length > 0
-            ? [
-                ...initialOptions,
-                ...list.filter(
-                  (item) => !initialOptions.some((option) => option.value === item.value),
-                ),
-              ]
-            : list;
+          const mergedOptions =
+            initialOptions.length > 0
+              ? [
+                  ...initialOptions,
+                  ...list.filter(
+                    (item) => !initialOptions.some((option) => option.value === item.value),
+                  ),
+                ]
+              : list;
+
+          return filterValidOptions(mergedOptions);
         }
 
-        return initialOptions.length > 0 ? initialOptions : [];
+        return filterValidOptions(initialOptions);
       } catch (error) {
         console.error('CustomSelect 请求数据错误:', error);
-        return initialOptions.length > 0 ? initialOptions : [];
+        return filterValidOptions(initialOptions);
       }
     },
-    [fetchData, defaultPageSize, initialOptions],
+    [fetchData, defaultPageSize, initialOptions, selectProps.options],
   );
 
   const PaginationComponent = useMemo(
