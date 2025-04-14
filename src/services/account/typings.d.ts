@@ -20,6 +20,7 @@ declare namespace AccountType {
   /** 登录返回类型 */
   type LoginResponse = {
     token: string;
+    apiPermissions?: string[]; // API权限列表
   };
   /** 重置密码请求类型 */
   type ResetPasswordParams = {

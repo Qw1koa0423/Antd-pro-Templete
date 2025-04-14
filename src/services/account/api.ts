@@ -44,8 +44,15 @@ export async function resetPassword(body: AccountType.ResetPasswordParams) {
  * @description 获取当前用户的API权限列表
  */
 export async function getApiAuth(options?: { [key: string]: any }) {
+  const userInfo =
+    window.localStorage.getItem('userInfo') || window.sessionStorage.getItem('userInfo');
+  const token = userInfo ? JSON.parse(userInfo).token : null;
+
   return request<API.BaseResponse<AccountType.ApiAuthResponse>>(`${API_URL}/auth/api`, {
     method: 'GET',
+    headers: {
+      'X-Auth-Token': token,
+    },
     ...(options || {}),
   });
 }

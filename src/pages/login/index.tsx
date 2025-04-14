@@ -9,7 +9,7 @@
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
  */
 
-import { login } from '@/services/account/api';
+import { login, getApiAuth } from '@/services/account/api';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { LoginForm, ProFormText } from '@ant-design/pro-components';
 import { useEmotionCss } from '@ant-design/use-emotion-css';
@@ -43,26 +43,46 @@ const LoginPage: React.FC = () => {
         ...values,
       });
       const userInfo = res.data; // 获取实际的业务数据
-      console.log('userInfo', userInfo);
-      // 保存用户信息
+
+      // 构建用户信息对象
       const userData = {
         ...userInfo,
         username: values.username,
       };
+
+      // 保存基础用户信息（包含token）
       window.localStorage.setItem('userInfo', JSON.stringify(userData));
       window.sessionStorage.setItem('userInfo', JSON.stringify(userData));
 
-      if (userInfo) {
-        flushSync(() => {
-          setInitialState((s: any) => ({
-            ...s,
-            currentUser: userData,
-          }));
-        });
-        message.success('登录成功！');
-        if (!history) return;
-        history.push('/');
+      // 获取API权限列表
+      try {
+        const apiAuthRes = await getApiAuth();
+        if (apiAuthRes.data && apiAuthRes.data.list) {
+          // 更新用户信息中的权限列表
+          userData.apiPermissions = apiAuthRes.data.list;
+          // 重新保存更新后的用户信息
+          window.localStorage.setItem('userInfo', JSON.stringify(userData));
+          window.sessionStorage.setItem('userInfo', JSON.stringify(userData));
+        }
+      } catch (apiError) {
+        console.error('获取API权限失败', apiError);
+        // 权限获取失败不影响登录流程，但会影响后续权限控制
+        userData.apiPermissions = [];
       }
+
+      console.log('完整用户信息', userData);
+
+      // 更新全局状态
+      flushSync(() => {
+        setInitialState((s: any) => ({
+          ...s,
+          currentUser: userData,
+        }));
+      });
+
+      message.success('登录成功！');
+      if (!history) return;
+      history.push('/');
     } catch (error: any) {
       // 错误处理优化
       if (error.errorMessage && error.errorMessage.length > 0) {
