@@ -1,0 +1,49 @@
+stages: # 分段
+  - lint
+  - install
+  - build
+  - ci_resp_notify
+
+cache: # 缓存
+  paths:
+    - node_modules
+
+lint:commit:
+  tags:
+    - lint-commit
+  stage: lint
+  script:
+    - echo "${CI_COMMIT_MESSAGE}" | npx commitlint
+
+install-job:
+  tags:
+    - npm-install
+  stage: install
+  only:
+    refs:
+      - branches@yaozai/park-walk/park-walk-console
+    changes:
+      - 'package.json'
+  except:
+    - develop
+  script:
+    - yarn
+
+deploy-job:
+  tags:
+    - npm-build
+  stage: build
+  only:
+    - branches@yaozai/park-walk/park-walk-console
+  except:
+    - develop
+  script:
+    - npx semantic-release
+
+resp-notify:
+  tags:
+    - ci_resp_notify
+  stage: ci_resp_notify
+  script:
+    - 'curl -H "Content-Type:application/json" -X POST -d ''{"msg_type":"text","content":{"text":"Pipeline（#''${CI_PIPELINE_ID}''）失败，请检查：''${CI_PIPELINE_URL}'' "}}'' https://open.feishu.cn/open-apis/bot/v2/hook/0886b918-2cde-43f1-9406-3632ce11828a'
+  when: on_failure

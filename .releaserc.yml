@@ -1,0 +1,20 @@
+branches:
+  - master
+  - name: hotfix
+    prerelease: rc
+  - name: release
+    prerelease: beta
+plugins:
+  - '@semantic-release/commit-analyzer'
+  - '@semantic-release/release-notes-generator'
+  - - '@semantic-release/changelog'
+    - changelogFile: CHANGELOG.md
+  - - '@semantic-release/exec'
+    - publishCmd: make install branch=$CI_COMMIT_REF_NAME
+      successCmd: curl -H "Content-Type:application/json" -X POST -d '{"msg_type":"text","content":{"text":"部署成功：园游记-运营端（${nextRelease.version}），更新如下：\n${commits.filter((ele) => ele.subject.indexOf("Merge") < 0 && ele.subject.indexOf("merge") < 0 && ele.subject.indexOf("skip ci") < 0).map((ele, i) => (i+1)+"、"+ele.subject).join("\\n")}"}}' https://open.feishu.cn/open-apis/bot/v2/hook/0886b918-2cde-43f1-9406-3632ce11828a
+      failCmd: curl -H "Content-Type:application/json" -X POST -d '{"msg_type":"text","content":{"text":"部署失败：园游记-运营端（${nextRelease.version}），请检查CI"}}' https://open.feishu.cn/open-apis/bot/v2/hook/0886b918-2cde-43f1-9406-3632ce11828a
+  - - '@semantic-release/gitlab'
+    - gitlabUrl: http://gitlab.topdrink.net
+  - - '@semantic-release/git'
+    - assets:
+        - CHANGELOG.md
