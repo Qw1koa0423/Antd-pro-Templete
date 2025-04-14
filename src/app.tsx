@@ -24,7 +24,7 @@ const loginPath = '/user/login';
  */
 export async function getInitialState(): Promise<{
   settings: Partial<LayoutSettings>;
-  currentUser?: UserType.LoginResponse & { username: string };
+  currentUser?: AccountType.LoginResponse & { username: string };
   loading?: boolean;
 }> {
   const { location } = history;
@@ -53,7 +53,7 @@ export async function getInitialState(): Promise<{
     // 返回带有用户信息的状态
     return {
       ...defaultState,
-      currentUser: userInfo as UserType.LoginResponse & { username: string },
+      currentUser: userInfo as AccountType.LoginResponse & { username: string },
     };
   } catch (error) {
     console.error('获取用户信息失败:', error);

@@ -9,7 +9,7 @@
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
  */
 
-import { login } from '@/services/login/api';
+import { login } from '@/services/account/api';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { LoginForm, ProFormText } from '@ant-design/pro-components';
 import { useEmotionCss } from '@ant-design/use-emotion-css';
@@ -36,7 +36,7 @@ const LoginPage: React.FC = () => {
     };
   });
 
-  const handleSubmit = async (values: UserType.LoginParams) => {
+  const handleSubmit = async (values: AccountType.LoginParams) => {
     try {
       // 登录
       const res = await login({
@@ -104,7 +104,7 @@ const LoginPage: React.FC = () => {
           title="后台通用模板"
           subTitle="后台通用模板"
           onFinish={async (values) => {
-            await handleSubmit(values as UserType.LoginParams);
+            await handleSubmit(values as AccountType.LoginParams);
           }}
         >
           <ProFormText

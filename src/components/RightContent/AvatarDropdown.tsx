@@ -8,7 +8,7 @@ import React, { Fragment, useCallback, useMemo, useState } from 'react';
 import { flushSync } from 'react-dom';
 import HeaderDropdown from '../HeaderDropdown';
 import { ModalForm, ProFormText } from '@ant-design/pro-components';
-import { resetPassword } from '@/services/login/api';
+import { resetPassword } from '@/services/account/api';
 import type { InitialStateType } from '@@/plugin-initialState/@@initialState';
 
 const loginPath = '/user/login';
@@ -81,7 +81,7 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({ children }) =
     }
   }, []);
 
-  const onFinish = async (value: UserType.ResetPasswordParams) => {
+  const onFinish = async (value: AccountType.ResetPasswordParams) => {
     setConfirmLoading(true);
     try {
       await resetPassword(value);
@@ -142,7 +142,7 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({ children }) =
 
   return (
     <Fragment>
-      <ModalForm<UserType.ResetPasswordParams>
+      <ModalForm<AccountType.ResetPasswordParams>
         width={500}
         onFinish={onFinish}
         title="密码重置"
