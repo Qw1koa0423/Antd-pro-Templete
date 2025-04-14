@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-17 16:40:02
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-04-14 15:09:50
+ * @LastEditTime: 2025-04-14 15:30:43
  * @FilePath: \Antd-pro-Templete\config\routes.ts
  * @Description: 路由配置
  *
@@ -44,7 +44,9 @@ export default [
     path: '/api-auth',
     name: 'API权限页面',
     icon: 'api',
-    // 使用accessApi属性指定所需的API权限
+    // 将API权限转换为Umi识别的标准权限方式
+    access: 'apiPermission', // 使用access.ts中定义的apiPermission权限判断
+    // 保留accessApi作为自定义属性供apiPermission函数使用
     accessApi: 'user:read', // 用户需要有user:read权限才能访问此页面
     component: './ApiAuth',
   },
@@ -71,6 +73,8 @@ export default [
       {
         path: '/list/api-list',
         name: 'API权限列表',
+        // 使用标准权限控制方式
+        access: 'apiPermission',
         accessApi: 'user:list', // 使用API权限控制
         component: './List/ApiList',
       },

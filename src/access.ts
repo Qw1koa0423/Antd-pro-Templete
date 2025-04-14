@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:39:51
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-04-14 15:30:00
+ * @LastEditTime: 2025-04-14 15:38:10
  * @FilePath: \Antd-pro-Templete\src\access.ts
  * @Description: 权限
  * @see https://umijs.org/zh-CN/plugins/plugin-access
@@ -20,7 +20,6 @@ export default function access(initialState: {
   const { currentUser } = initialState || {};
   // 获取用户的API权限列表（假设后端返回的结构中包含apiPermissions字段）
   const apiPermissions = currentUser?.apiPermissions || [];
-
   // 判断是否拥有所有权限(*表示拥有所有权限)
   const hasAllPermissions = apiPermissions.includes('*');
 
@@ -36,27 +35,43 @@ export default function access(initialState: {
     // 管理员权限 - 通过API权限列表判断
     isAdmin: hasAdminPermission,
 
+    // API权限检查函数 - 用于路由的access属性
+    apiPermission: (route: any) => {
+      // 如果用户拥有所有权限(*)，直接返回true
+      if (hasAllPermissions) return true;
+
+      // 获取路由中定义的API权限
+      const requiredPermission = route?.accessApi;
+      if (!requiredPermission) return true; // 如果未指定权限，则允许访问
+
+      // 检查用户是否拥有指定的API权限
+      return apiPermissions.includes(requiredPermission);
+    },
+
     // 路由访问权限，接收路由信息作为参数
     routeFilter: (route: any) => {
-      // 如果路由没有定义access属性，则默认可访问
-      if (!route.access) return true;
-
       // 如果用户拥有所有权限(*)，则可以访问所有路由
       if (hasAllPermissions) return true;
 
-      // 判断是否具有管理员权限的路由
-      if (route.access === 'isAdmin' && !hasAdminPermission) {
-        return false;
-      }
-
-      // 如果是需要登录的路由，检查是否已登录
-      if (route.access === 'isLogin' && !currentUser) {
-        return false;
-      }
-
-      // 如果路由指定了所需的API权限
+      // 先检查路由是否指定了所需的API权限
       if (route.accessApi && typeof route.accessApi === 'string') {
-        return apiPermissions.includes(route.accessApi);
+        // 如果指定了API权限，则必须拥有该权限才能访问
+        if (!apiPermissions.includes(route.accessApi)) {
+          return false;
+        }
+      }
+
+      // 再检查是否有access属性的权限控制
+      if (route.access) {
+        // 判断是否具有管理员权限的路由
+        if (route.access === 'isAdmin' && !hasAdminPermission) {
+          return false;
+        }
+
+        // 如果是需要登录的路由，检查是否已登录
+        if (route.access === 'isLogin' && !currentUser) {
+          return false;
+        }
       }
 
       return true;

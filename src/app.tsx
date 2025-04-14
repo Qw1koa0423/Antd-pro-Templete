@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:39:51
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-04-08 10:50:37
+ * @LastEditTime: 2025-04-14 15:33:52
  * @FilePath: \Antd-pro-Templete\src\app.tsx
  * @Description: 项目入口
  *
@@ -14,6 +14,8 @@ import { history } from '@umijs/max';
 import defaultSettings from '../config/defaultSettings';
 import { AvatarDropdown, AvatarName } from './components/RightContent/AvatarDropdown';
 import { errorConfig } from './requestErrorConfig';
+import { getApiAuth } from './services/account/api';
+import React from 'react';
 
 // 登录路径常量
 const loginPath = '/user/login';
@@ -26,12 +28,50 @@ export async function getInitialState(): Promise<{
   settings: Partial<LayoutSettings>;
   currentUser?: AccountType.LoginResponse & { username: string };
   loading?: boolean;
+  fetchUserInfo?: () => Promise<(AccountType.LoginResponse & { username: string }) | undefined>;
 }> {
   const { location } = history;
+
+  // 获取最新用户信息的函数
+  const fetchUserInfo = async () => {
+    try {
+      // 从本地存储获取基本用户信息
+      const storageInfo = window.__GLOBAL_DATA__?.getUserInfo?.() || null;
+
+      if (!storageInfo) return undefined;
+
+      // 获取最新的API权限列表
+      try {
+        const apiAuthRes = await getApiAuth();
+        if (apiAuthRes.data && apiAuthRes.data.list) {
+          // 合并最新的权限信息
+          const updatedUserInfo = {
+            ...storageInfo,
+            apiPermissions: apiAuthRes.data.list,
+          };
+
+          // 更新本地存储
+          window.localStorage.setItem('userInfo', JSON.stringify(updatedUserInfo));
+          window.sessionStorage.setItem('userInfo', JSON.stringify(updatedUserInfo));
+
+          return updatedUserInfo;
+        }
+      } catch (apiError) {
+        console.error('刷新权限失败:', apiError);
+        // 权限获取失败时使用原有权限
+      }
+
+      return storageInfo;
+    } catch (error) {
+      console.error('获取用户信息失败:', error);
+      return undefined;
+    }
+  };
 
   // 默认返回值
   const defaultState = {
     settings: defaultSettings as Partial<LayoutSettings>,
+    fetchUserInfo,
   };
 
   // 如果在登录页，则只返回默认配置
@@ -39,27 +79,18 @@ export async function getInitialState(): Promise<{
     return defaultState;
   }
 
-  // 尝试获取用户信息
-  try {
-    // 从requestErrorConfig中导入getUserInfo函数
-    const userInfo = window.__GLOBAL_DATA__?.getUserInfo?.() || null;
-
-    // 如果没有用户信息，重定向到登录页
-    if (!userInfo) {
-      history.push(loginPath);
-      return defaultState;
-    }
-
-    // 返回带有用户信息的状态
-    return {
-      ...defaultState,
-      currentUser: userInfo as AccountType.LoginResponse & { username: string },
-    };
-  } catch (error) {
-    console.error('获取用户信息失败:', error);
+  // 尝试获取最新用户信息
+  const userInfo = await fetchUserInfo();
+  if (!userInfo) {
     history.push(loginPath);
     return defaultState;
   }
+
+  // 返回带有用户信息的状态
+  return {
+    ...defaultState,
+    currentUser: userInfo,
+  };
 }
 
 /**
@@ -93,6 +124,9 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
       }
     },
 
+    // 自定义403页面
+    unAccessible: <>{React.createElement(require('./pages/403').default)}</>,
+
     // 布局背景图片配置
     layoutBgImgList: [
       {
@@ -120,9 +154,6 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
 
     // 菜单头部渲染
     menuHeaderRender: undefined,
-
-    // 自定义403页面（暂时注释）
-    // unAccessible: <div>unAccessible</div>,
 
     // 子组件渲染
     childrenRender: (children) => {
