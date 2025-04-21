@@ -1,0 +1,62 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 路由配置规范
+
+本项目使用Umi框架，路由配置位于`config/routes.ts`文件。
+
+## 路由结构
+
+- 基本路由应包含`path`、`component`和`name`属性
+- 嵌套路由通过`routes`数组配置子路由
+- 页面组件需要按照命名约定进行命名
+
+## 基本示例
+
+```typescript
+export default [
+  {
+    path: '/user',
+    component: './user',
+    name: '用户管理',
+    routes: [
+      {
+        path: '/user/list',
+        component: './user/user_list',
+        name: '用户列表',
+      },
+      {
+        path: '/user/detail/:id',
+        component: './user/user_detail',
+        name: '用户详情',
+        hideInMenu: true,
+      },
+    ],
+  },
+  {
+    path: '/login',
+    component: './login',
+    layout: false,
+  },
+];
+```
+
+## 权限控制
+
+- 使用`access`属性配置路由权限
+- 权限逻辑定义在`src/access.ts`文件中
+
+```typescript
+{
+  path: '/admin',
+  component: './admin',
+  access: 'canAdmin', // 只有管理员才能访问
+}
+```
+
+## 布局配置
+
+- 使用`layout: false`配置不使用全局布局的页面（如登录页）
+

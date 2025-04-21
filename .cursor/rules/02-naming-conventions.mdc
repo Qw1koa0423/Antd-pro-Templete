@@ -1,0 +1,37 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 命名规范
+
+本项目遵循严格的命名规范，以保持代码库的一致性和可维护性。
+
+## 图片命名
+- 使用全小写英文或拼音缩写
+- 名称间隔使用`-`符号
+- 示例: `bg.jpg`, `mod-bg.jpg`, `btn-start.png`
+
+## 页面命名 (pages)
+- 页面使用全小写，多个单词用`_`连接
+- 页面组件使用大驼峰命名法 + `Page`后缀
+- 示例: `login/index.tsx` -> `LoginPage`, `user/user_list.tsx` -> `UserListPage`
+
+## 组件命名 (components)
+- 全局组件: 大驼峰命名法，放在`src/components`目录
+- 页面组件: 大驼峰命名法，放在`src/pages/xxx/components`目录
+
+## 工具函数命名 (utils)
+- 使用全小写，多单词用`_`连接
+- 放在`src/utils`目录，在`index.ts`中导出
+- 示例: `get_signature.ts`
+
+## 变量命名
+- 普通变量: 小驼峰命名法
+- 常量: 全大写，多单词用`_`连接，使用`const`声明
+- 示例: `userList`, `USER_NAME`
+
+## 函数命名
+- 动词开头，使用小驼峰命名法
+- 示例: `getUserList`, `handleSubmit`
+

@@ -1,0 +1,58 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# API结构规范
+
+本项目的API接口和类型定义遵循特定的组织结构。
+
+## 目录结构
+- `src/services/` - API接口和类型的根目录
+- `src/services/API.d.ts` - 通用接口类型定义
+- 按顶级页面创建的子目录，如: `src/services/user/`
+
+## 文件组织
+每个API模块包含以下文件:
+- `api.ts` - API接口定义
+- `typings.d.ts` - 类型定义
+
+## API定义规范
+```typescript
+/**
+ * @name 获取用户列表
+ * @params params
+ */
+export async function getUserList(params: API.PageRequest & User.UserListParams) {
+  return request<API.PageInfo<User.UserListItem>>(`${API_URL}/user/list`, {
+    method: 'GET',
+    params,
+  });
+}
+```
+
+## 类型定义规范
+- 使用命名空间组织类型
+- 添加清晰的注释
+- 示例:
+
+```typescript
+declare namespace UserType {
+  /** 用户列表请求 */
+  type UserListParams = {
+    keyWords?: string;
+    roleName?: 0 | 1;
+    startTime?: string;
+    endTime?: string;
+  };
+  
+  /** 用户列表返回 */
+  type UserListItem = {
+    keyIndex?: number;
+    id: number;
+    username: string;
+    // ... 其他属性
+  };
+}
+```
+

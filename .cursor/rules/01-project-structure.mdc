@@ -1,0 +1,29 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 项目结构指南
+
+这个Ant Design Pro模板项目遵循特定的项目结构:
+
+## 核心目录
+- `config/`: 配置文件目录，包含不同环境的配置
+- `src/components/`: 全局共享组件
+- `src/pages/`: 页面组件
+- `src/services/`: API接口和类型定义
+- `src/utils/`: 工具函数
+
+## 环境配置
+- `config.local.ts` - 本地开发环境配置
+- `config.alpha.ts` - Alpha环境配置
+- `config.beta.ts` - Beta环境配置
+- `config.rc.ts` - RC(预发布)环境配置
+- `config.ts` - 生产环境配置
+
+## 重要入口文件
+- `src/app.tsx` - 应用入口文件
+- `src/global.tsx` - 全局配置
+- `src/access.ts` - 权限控制
+- `src/global.less` - 全局样式
+
