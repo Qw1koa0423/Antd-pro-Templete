@@ -49,16 +49,16 @@
 
 ```bash
 # 安装依赖
-yarn
+pnpm
 
 # 启动项目
-yarn start  # 本地环境
-yarn start:alpha # alpha 环境
-yarn start:beta # beta 环境
-yarn start:rc # rc 环境
+pnpm run start  # 本地环境
+pnpm run start:alpha # alpha 环境
+pnpm run start:beta # beta 环境
+pnpm run start:rc # rc 环境
 
 # 打包项目
-yarn build
+pnpm run build
 
 ```
 
