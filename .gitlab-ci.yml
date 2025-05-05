@@ -4,6 +4,11 @@ stages: # 分段
   - build
   - ci_resp_notify
 
+before_script:
+  - eval "$(fnm env)"
+  - if [ -f ".nvmrc" ]; then fnm install $(cat .nvmrc) && fnm use $(cat .nvmrc); elif [ -f ".node-version" ]; then fnm install $(cat .node-versio) && fnm use $(cat .node-versio); fi
+  - npm install yarn tyarn semantic-release@19.0.5 @semantic-release/changelog@6.0.1 @semantic-release/git@10.0.1 @semantic-release/gitlab@9.5.0 @commitlint/cli@18.6.0 @commitlint/config-conventional@18.6.0 @semantic-release/exec@6.0.3 semantic-release-monorepo@7.0.5 @commitlint/config-angular@18.6.0  @saithodev/semantic-release-backmerge@2.1.2 pnpm@latest-10 -g --registry=https://registry.npmmirror.com
+
 cache: # 缓存
   paths:
     - node_modules
@@ -21,20 +26,20 @@ install-job:
   stage: install
   only:
     refs:
-      - branches@yaozai/park-walk/park-walk-console
+      - branches@yaozai/vr-space/vr-space-broker
     changes:
       - 'package.json'
   except:
     - develop
   script:
-    - yarn
+    - pnpm install --registry=https://registry.npmmirror.com
 
 deploy-job:
   tags:
     - npm-build
   stage: build
   only:
-    - branches@yaozai/park-walk/park-walk-console
+    - branches@yaozai/******/****** # 项目名称
   except:
     - develop
   script:
