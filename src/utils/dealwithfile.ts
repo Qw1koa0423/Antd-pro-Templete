@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
  * @Date: 2023-04-03 13:09:16
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-04-07 16:57:04
+ * @LastEditTime: 2025-05-08 17:32:51
  * @FilePath: \Antd-pro-Templete\src\utils\dealwithfile.ts
  * @Description:
  *
@@ -45,36 +45,108 @@ function hashChunk(chunk: Blob, hasher: IHasher): Promise<void> {
 const getFileMd5 = async (file: File & { md5?: string }): Promise<{ md5: string }> => {
   // 256MB的块大小
   const chunkSize = 268435456;
+  const startTime = Date.now();
+
+  console.log(
+    `[MD5性能统计] 开始计算文件MD5，文件名: ${file.name}, 大小: ${(file.size / (1024 * 1024)).toFixed(2)}MB`,
+  );
 
   try {
+    const initHasherStart = Date.now();
     const hasher = await createMD5();
+    const initHasherEnd = Date.now();
+    console.log(
+      `[MD5性能统计] 初始化MD5计算器耗时: ${((initHasherEnd - initHasherStart) / 1000).toFixed(3)}秒`,
+    );
 
     // 小文件直接处理
     if (file.size < chunkSize) {
+      const smallFileStart = Date.now();
       await hashChunk(file, hasher);
       const hash = hasher.digest();
+      const smallFileEnd = Date.now();
+      const timeSpent = (smallFileEnd - smallFileStart) / 1000;
+
+      console.log(
+        `[MD5性能统计] 小文件MD5计算完成，耗时: ${timeSpent.toFixed(2)}秒, 速度: ${(file.size / 1024 / 1024 / timeSpent).toFixed(2)}MB/s`,
+      );
+
       file.md5 = hash;
       return { md5: hash };
     }
 
     // 大文件分块处理
     const chunkNumber = Math.ceil(file.size / chunkSize);
+    console.log(
+      `[MD5性能统计] 大文件分块处理，共 ${chunkNumber} 个分块，每块大小: ${(chunkSize / (1024 * 1024)).toFixed(2)}MB`,
+    );
+
     const processChunks = async () => {
+      const chunkTimes: number[] = [];
+
       for (let i = 0; i < chunkNumber; i++) {
+        const chunkStart = Date.now();
         const chunk = file.slice(chunkSize * i, Math.min(chunkSize * (i + 1), file.size));
         await hashChunk(chunk, hasher);
+        const chunkEnd = Date.now();
+        const chunkTime = (chunkEnd - chunkStart) / 1000;
+        chunkTimes.push(chunkTime);
+
+        console.log(
+          `[MD5性能统计] 分块 ${i + 1}/${chunkNumber} 处理完成，大小: ${(chunk.size / (1024 * 1024)).toFixed(2)}MB, 耗时: ${chunkTime.toFixed(2)}秒, 速度: ${(chunk.size / 1024 / 1024 / chunkTime).toFixed(2)}MB/s`,
+        );
       }
+
+      // 汇总分块处理统计
+      const totalChunkTime = chunkTimes.reduce((a, b) => a + b, 0);
+      const avgChunkTime = totalChunkTime / chunkNumber;
+      const maxChunkTime = Math.max(...chunkTimes);
+      const minChunkTime = Math.min(...chunkTimes);
+
+      console.log(`[MD5性能统计] 分块处理统计:
+      - 总耗时: ${totalChunkTime.toFixed(2)}秒
+      - 平均耗时: ${avgChunkTime.toFixed(2)}秒/块
+      - 最大耗时: ${maxChunkTime.toFixed(2)}秒
+      - 最小耗时: ${minChunkTime.toFixed(2)}秒
+      - 平均速度: ${(file.size / 1024 / 1024 / totalChunkTime).toFixed(2)}MB/s`);
+
       return hasher.digest();
     };
 
+    const digestStart = Date.now();
     const hash = await processChunks();
+    const digestEnd = Date.now();
+    console.log(
+      `[MD5性能统计] 生成最终哈希值耗时: ${((digestEnd - digestStart) / 1000).toFixed(3)}秒`,
+    );
+
     file.md5 = hash;
+
+    const endTime = Date.now();
+    const totalTime = (endTime - startTime) / 1000;
+    console.log(
+      `[MD5性能统计] MD5计算完成，总耗时: ${totalTime.toFixed(2)}秒, 总速度: ${(file.size / 1024 / 1024 / totalTime).toFixed(2)}MB/s`,
+    );
+
     return { md5: hash };
   } catch (error) {
-    console.error('MD5计算错误:', error);
+    const endTime = Date.now();
+    console.error(
+      `[MD5性能统计] MD5计算错误，总耗时: ${((endTime - startTime) / 1000).toFixed(2)}秒:`,
+      error,
+    );
+
     // 回退到简单的MD5计算方式
+    const fallbackStart = Date.now();
+    const fallbackMd5 = await md5(file.name + new Date().getTime());
+    const fallbackEnd = Date.now();
+
+    console.log(
+      `[MD5性能统计] 使用回退方法计算MD5，耗时: ${((fallbackEnd - fallbackStart) / 1000).toFixed(3)}秒`,
+    );
+
     return {
-      md5: await md5(file.name + new Date().getTime()),
+      md5: fallbackMd5,
     };
   }
 };

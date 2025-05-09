@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
  * @Date: 2023-03-30 16:17:04
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-04-08 14:23:27
+ * @LastEditTime: 2025-05-09 09:22:38
  * @FilePath: \Antd-pro-Templete\src\components\CustomUploadButton\index.tsx
  * @Description: 自定义上传按钮组件
  *
@@ -49,6 +49,8 @@ interface UploadButtonProps {
   // 分块上传设置
   chunkUpload?: boolean; // 是否启用分块上传
   fileSizeForChunk?: number; // 触发分块上传的文件大小阈值（字节）
+  chunkSize?: number; // 分块大小（字节）
+  concurrentChunks?: number; // 并发上传分块数量
 
   // 自定义回调
   onFileChange?: (info: UploadChangeParam<UploadFile<any>>) => void; // 文件变更回调
@@ -127,18 +129,6 @@ class UploadQueue {
 }
 
 /**
- * 延迟执行
- * @param ms 延迟毫秒数
- */
-const delay = (ms: number): Promise<void> => {
-  return new Promise<void>((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, ms);
-  });
-};
-
-/**
  * 自定义上传组件，支持按钮和拖拽两种上传方式
  */
 const CustomUploadButton: React.FC<CustomUploadProps> = ({
@@ -166,6 +156,8 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
   // 分块上传设置
   chunkUpload = false,
   fileSizeForChunk = 10 * 1024 * 1024, // 默认10MB以上使用分块上传
+  chunkSize = 10 * 1024 * 1024, // 默认10MB的分块大小
+  concurrentChunks = 3, // 默认3个并发上传分块
 
   // 自定义回调
   onFileChange,
@@ -329,22 +321,41 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
 
             // 根据文件大小决定是否使用分块上传
             if (chunkUpload && uploadFile.size > fileSizeForChunk) {
-              // 对于分块上传，模拟进度反馈
-              for (let i = 0; i <= 10; i++) {
-                await delay(300);
-                if (onProgress) {
-                  onProgress({ percent: Math.floor((i / 10) * 100) });
-                }
-              }
+              console.log(
+                `使用分块上传，文件大小: ${uploadFile.size}，阈值: ${fileSizeForChunk}，分块大小: ${chunkSize}，并发数: ${concurrentChunks}`,
+              );
 
-              // 实际上传
-              result = await customUpload(uploadFile, uploadConfig);
+              // 调用customUpload函数，传递分块上传参数
+              result = await customUpload(
+                uploadFile,
+                uploadConfig,
+                0, // 初始重试次数为0
+                true, // 启用分块上传
+                fileSizeForChunk, // 分块大小阈值
+                chunkSize, // 分块大小
+                concurrentChunks, // 并发上传数量
+                (percent) => {
+                  if (onProgress) {
+                    onProgress({ percent });
+                  }
+                },
+              );
             } else {
               // 常规上传
-              result = await customUpload(uploadFile, uploadConfig);
-              if (onProgress) {
-                onProgress({ percent: 100 });
-              }
+              result = await customUpload(
+                uploadFile,
+                uploadConfig,
+                0, // 初始重试次数为0
+                false, // 不使用分块上传
+                fileSizeForChunk, // 分块大小阈值
+                chunkSize, // 分块大小
+                concurrentChunks, // 并发上传数量
+                (percent) => {
+                  if (onProgress) {
+                    onProgress({ percent });
+                  }
+                },
+              );
             }
 
             const responseData = {
@@ -382,7 +393,7 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
           console.error('上传队列处理失败:', error);
         });
     },
-    [chunkUpload, fileSizeForChunk, onUploadSuccess, onUploadError],
+    [chunkUpload, fileSizeForChunk, chunkSize, concurrentChunks, onUploadSuccess, onUploadError],
   );
 
   /**
