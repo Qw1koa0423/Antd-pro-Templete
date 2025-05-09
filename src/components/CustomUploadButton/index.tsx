@@ -49,7 +49,7 @@ interface UploadButtonProps {
   // 分块上传设置
   chunkUpload?: boolean; // 是否启用分块上传
   fileSizeForChunk?: number; // 触发分块上传的文件大小阈值（字节）
-  chunkSize?: number; // 分块大小（字节）
+  chunkSize?: number; // 可选的固定分片大小，如不指定则根据文件大小自动确定
   concurrentChunks?: number; // 并发上传分块数量
 
   // 自定义回调
@@ -156,7 +156,7 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
   // 分块上传设置
   chunkUpload = false,
   fileSizeForChunk = 10 * 1024 * 1024, // 默认10MB以上使用分块上传
-  chunkSize = 10 * 1024 * 1024, // 默认10MB的分块大小
+  chunkSize, // 可选的固定分片大小，如不指定则根据文件大小自动确定
   concurrentChunks = 3, // 默认3个并发上传分块
 
   // 自定义回调
@@ -322,7 +322,7 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
             // 根据文件大小决定是否使用分块上传
             if (chunkUpload && uploadFile.size > fileSizeForChunk) {
               console.log(
-                `使用分块上传，文件大小: ${uploadFile.size}，阈值: ${fileSizeForChunk}，分块大小: ${chunkSize}，并发数: ${concurrentChunks}`,
+                `使用分块上传，文件大小: ${uploadFile.size}，阈值: ${fileSizeForChunk}，并发数: ${concurrentChunks}，${chunkSize ? `指定分块大小: ${chunkSize}字节` : '使用自动分块大小'}`,
               );
 
               // 调用customUpload函数，传递分块上传参数
@@ -332,7 +332,7 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
                 0, // 初始重试次数为0
                 true, // 启用分块上传
                 fileSizeForChunk, // 分块大小阈值
-                chunkSize, // 分块大小
+                chunkSize, // 分块大小，如果未指定则会自动根据文件大小确定
                 concurrentChunks, // 并发上传数量
                 (percent) => {
                   if (onProgress) {
