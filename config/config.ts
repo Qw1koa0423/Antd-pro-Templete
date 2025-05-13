@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:44:59
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-05-08 16:14:58
+ * @LastEditTime: 2025-05-13 10:40:58
  * @FilePath: \Antd-pro-Templete\config\config.ts
  * @Description: UMI配置文件
  * @see: https://umijs.org/docs/api/config
@@ -114,7 +114,6 @@ export default defineConfig({
   headScripts: [
     // 解决首次加载时白屏的问题
     { src: '/scripts/loading.js', async: true },
-    { src: 'node_modules/@baiducloud/sdk/dist/baidubce-sdk.bundle.min.js', async: true },
   ],
 
   /**

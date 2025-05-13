@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
  * @Date: 2023-04-03 11:48:23
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-05-09 15:00:05
+ * @LastEditTime: 2025-05-13 15:06:50
  * @FilePath: \Antd-pro-Templete\src\utils\upload.ts
  * @Description: web直接上传
  *
@@ -93,9 +93,16 @@ const getChunkSizeByFileSize = (fileSize: number): number => {
   } else if (fileSize <= 500 * MB) {
     // 200-500M，每个分片大小10M
     return 10 * MB;
-  } else {
-    // 500M以上，每个分片大小20M
+  } else if (fileSize <= 2048 * MB) {
+    // 500M-2048M，每个分片大小20M
     return 20 * MB;
+  } else if (fileSize <= 4096 * MB) {
+    // 2048M-4096M，每个分片大小40M
+    return 40 * MB;
+  } else {
+    // 4096M以上，最大105个分片
+    const maxChunkNumber = Math.min(Math.ceil(fileSize / (50 * MB)), 105);
+    return fileSize / maxChunkNumber;
   }
 };
 

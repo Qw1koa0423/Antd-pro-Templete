@@ -2,7 +2,7 @@
  * @Author: Liu Haoqi liuhaoqw1ko@gmail.com
  * @Date: 2024-03-18 11:16:07
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-04-14 14:19:21
+ * @LastEditTime: 2025-05-13 15:08:46
  * @FilePath: \Antd-pro-Templete\src\services\common\typings.d.ts
  * @Description: 公共分类类型定义
  *
@@ -35,8 +35,11 @@ declare namespace CommonType {
 
   /** 上传文件参数 */
   interface UploadFileParams {
+    chunkIndex?: string; // 块序号，分片上传时必填
+    chunkTotal?: string; // 块总数，分片上传时必填
+    chunkHash?: string; // 块标识，分片上传时必填
     key: string;
-    file: File;
+    file: File; //必须为最后一个参数传入
   }
 
   /** 枚举项 */

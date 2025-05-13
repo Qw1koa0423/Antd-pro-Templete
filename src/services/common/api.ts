@@ -2,7 +2,7 @@
  * @Author: Liu Haoqi liuhaoqw1ko@gmail.com
  * @Date: 2024-03-18 11:16:07
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-04-14 14:27:44
+ * @LastEditTime: 2025-05-13 10:46:32
  * @FilePath: \Antd-pro-Templete\src\services\common\api.ts
  * @Description: 公共分类接口
  *
@@ -33,10 +33,25 @@ export async function getAreaList(params?: { pid?: string }) {
 
 /**
  * @name 上传文件
- * @description 本地文件上传（server方式）
- * @param formData 上传数据，包含key和file
+ * @description 本地文件上传（server方式），支持普通上传和分片上传
+ * @param params 上传参数
+ * @param params.key 文件名，必填
+ * @param params.file 上传文件，必填
+ * @param params.chunkIndex 块序号，分片上传时必填
+ * @param params.chunkTotal 块总数，分片上传时必填
+ * @param params.chunkHash 块标识，分片上传时必填
  */
-export async function uploadFile(formData: FormData) {
+export async function uploadFile(params: CommonType.UploadFileParams) {
+  const formData = new FormData();
+
+  // 添加分片上传相关参数（如果有）
+  if (params.chunkIndex) formData.append('chunkIndex', params.chunkIndex);
+  if (params.chunkTotal) formData.append('chunkTotal', params.chunkTotal);
+  if (params.chunkHash) formData.append('chunkHash', params.chunkHash);
+  // 添加所有参数到FormData
+  formData.append('key', params.key);
+  formData.append('file', params.file);
+
   return request<API.BaseResponse<void>>(`${API_URL}/upload`, {
     method: 'POST',
     data: formData,
