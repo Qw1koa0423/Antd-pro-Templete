@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
  * @Date: 2023-04-03 13:09:16
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-05-13 10:26:54
+ * @LastEditTime: 2025-05-14 13:03:28
  * @FilePath: \Antd-pro-Templete\src\utils\dealwithfile.ts
  * @Description:
  *
@@ -87,22 +87,12 @@ const getFileMd5 = async (
 ): Promise<{ md5: string; md5Promise?: Promise<string>; tempId?: string }> => {
   // 256MB的阈值，超过此大小则启用异步计算
   const asyncThreshold = 256 * 1024 * 1024;
-  const startTime = Date.now();
-
-  console.log(
-    `[MD5性能统计] 开始计算文件MD5，文件名: ${file.name}, 大小: ${(file.size / (1024 * 1024)).toFixed(2)}MB`,
-  );
 
   try {
     // 对于大文件，先计算第一个分块的MD5作为临时ID
     if (file.size > asyncThreshold) {
-      const tempIdStart = Date.now();
-
       // 获取基于文件大小的分块大小
       const firstChunkSize = getChunkSizeByFileSize(file.size);
-      console.log(
-        `[MD5性能统计] 大文件使用分块策略，第一个分块大小: ${(firstChunkSize / (1024 * 1024)).toFixed(2)}MB`,
-      );
 
       // 只取文件的第一个分块计算临时MD5
       const firstChunk = file.slice(0, firstChunkSize);
@@ -115,66 +105,18 @@ const getFileMd5 = async (
       // 使用第一个分块的MD5作为临时ID
       const tempId = firstChunkMd5;
 
-      const tempIdEnd = Date.now();
-      const tempIdTime = (tempIdEnd - tempIdStart) / 1000;
-      console.log(`[MD5性能统计] 生成临时ID耗时: ${tempIdTime.toFixed(3)}秒, 临时ID: ${tempId}`);
-
       // 创建一个计算完整MD5的Promise
       const md5Promise = new Promise<string>((resolve, reject) => {
         // 使用立即执行的异步函数包装async逻辑
         (async () => {
           try {
-            const fullMd5Start = Date.now();
-            console.log(`[MD5性能统计] 开始计算完整文件MD5...`);
-
             // 创建新的MD5计算器
             const fullHasher = await createMD5();
 
-            // 确定每个分块的大小，与上传分块保持一致
-            const chunkSize = getChunkSizeByFileSize(file.size);
-
-            // 分块处理整个文件
-            const chunkNumber = Math.ceil(file.size / chunkSize);
-            console.log(
-              `[MD5性能统计] 完整文件分块处理，共 ${chunkNumber} 个分块，每块大小: ${(chunkSize / (1024 * 1024)).toFixed(2)}MB`,
-            );
-
-            const chunkTimes: number[] = [];
-            for (let i = 0; i < chunkNumber; i++) {
-              const chunkStart = Date.now();
-              const chunk = file.slice(chunkSize * i, Math.min(chunkSize * (i + 1), file.size));
-              await hashChunk(chunk, fullHasher);
-              const chunkEnd = Date.now();
-              const chunkTime = (chunkEnd - chunkStart) / 1000;
-              chunkTimes.push(chunkTime);
-
-              console.log(
-                `[MD5性能统计] 分块 ${i + 1}/${chunkNumber} 处理完成，大小: ${(chunk.size / (1024 * 1024)).toFixed(2)}MB, 耗时: ${chunkTime.toFixed(2)}秒, 速度: ${(chunk.size / 1024 / 1024 / chunkTime).toFixed(2)}MB/s`,
-              );
-            }
-
-            // 汇总分块处理统计
-            const totalChunkTime = chunkTimes.reduce((a, b) => a + b, 0);
-            const avgChunkTime = totalChunkTime / chunkNumber;
-            const maxChunkTime = Math.max(...chunkTimes);
-            const minChunkTime = Math.min(...chunkTimes);
-
-            console.log(`[MD5性能统计] 分块处理统计:
-            - 总耗时: ${totalChunkTime.toFixed(2)}秒
-            - 平均耗时: ${avgChunkTime.toFixed(2)}秒/块
-            - 最大耗时: ${maxChunkTime.toFixed(2)}秒
-            - 最小耗时: ${minChunkTime.toFixed(2)}秒
-            - 平均速度: ${(file.size / 1024 / 1024 / totalChunkTime).toFixed(2)}MB/s`);
-
             // 获取最终的完整MD5
             const finalMd5 = fullHasher.digest();
-            const fullMd5End = Date.now();
-            const fullMd5Time = (fullMd5End - fullMd5Start) / 1000;
-            const totalTime = (fullMd5End - startTime) / 1000;
 
-            console.log(
-              `[MD5性能统计] 完整文件MD5计算完成: ${finalMd5}, 耗时: ${fullMd5Time.toFixed(2)}秒, 总时间: ${totalTime.toFixed(2)}秒, 速度: ${(file.size / 1024 / 1024 / fullMd5Time).toFixed(2)}MB/s`,
-            );
+            console.log(`[MD5性能统计] 完整文件MD5计算完成: ${finalMd5}`);
 
             // 将完整MD5保存到文件对象
             file.md5 = finalMd5;
@@ -196,20 +138,10 @@ const getFileMd5 = async (
     }
 
     // 对于小文件（<256MB），直接计算完整MD5
-    const smallFileStart = Date.now();
-    console.log(`[MD5性能统计] 小文件直接计算完整MD5...`);
 
     const hasher = await createMD5();
     await hashChunk(file, hasher);
     const hash = hasher.digest();
-
-    const smallFileEnd = Date.now();
-    const timeSpent = (smallFileEnd - smallFileStart) / 1000;
-    const totalTime = (smallFileEnd - startTime) / 1000;
-
-    console.log(
-      `[MD5性能统计] 小文件MD5计算完成: ${hash}, 耗时: ${timeSpent.toFixed(2)}秒, 总时间: ${totalTime.toFixed(2)}秒, 速度: ${(file.size / 1024 / 1024 / timeSpent).toFixed(2)}MB/s`,
-    );
 
     // 保存到文件对象
     file.md5 = hash;
@@ -217,18 +149,8 @@ const getFileMd5 = async (
     // 对于小文件，直接返回完整MD5
     return { md5: hash };
   } catch (error) {
-    const endTime = Date.now();
-    const totalTime = (endTime - startTime) / 1000;
-    console.error(`[MD5性能统计] MD5计算过程中发生错误，总耗时: ${totalTime.toFixed(2)}秒:`, error);
-
     // 发生错误时使用文件名+时间戳的哈希作为临时ID
-    const fallbackStart = Date.now();
     const fallbackMd5 = await md5(file.name + Date.now());
-    const fallbackEnd = Date.now();
-
-    console.log(
-      `[MD5性能统计] 使用回退方法计算MD5，耗时: ${((fallbackEnd - fallbackStart) / 1000).toFixed(3)}秒`,
-    );
 
     return { md5: fallbackMd5, tempId: fallbackMd5 };
   }

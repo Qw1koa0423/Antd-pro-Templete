@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
  * @Date: 2023-04-03 11:48:23
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-05-13 15:06:50
+ * @LastEditTime: 2025-05-14 15:48:29
  * @FilePath: \Antd-pro-Templete\src\utils\upload.ts
  * @Description: web直接上传
  *
@@ -10,8 +10,7 @@
  */
 import baidubce from '@baiducloud/sdk';
 import { getFileMd5 } from './dealwithfile';
-import { getAuth } from '@/services/common/api';
-
+import { getAuth, uploadFile as uploadFileService } from '@/services/common/api';
 /**
  * 上传配置属性接口
  */
@@ -100,8 +99,8 @@ const getChunkSizeByFileSize = (fileSize: number): number => {
     // 2048M-4096M，每个分片大小40M
     return 40 * MB;
   } else {
-    // 4096M以上，最大105个分片
-    const maxChunkNumber = Math.min(Math.ceil(fileSize / (50 * MB)), 105);
+    // 4096M以上，最大100个分片
+    const maxChunkNumber = Math.min(Math.ceil(fileSize / (50 * MB)), 104);
     return fileSize / maxChunkNumber;
   }
 };
@@ -188,25 +187,18 @@ const splitFileIntoChunks = (file: File, chunkSize = DEFAULT_CHUNK_SIZE): Blob[]
     throw new Error('无效的文件对象');
   }
 
-  console.log(`开始分割文件: ${file.name}, 大小: ${file.size} 字节, 分块大小: ${chunkSize} 字节`);
-
   const chunks: Blob[] = [];
   let start = 0;
-  let chunkIndex = 0;
 
   while (start < file.size) {
     const end = Math.min(start + chunkSize, file.size);
     const chunk = file.slice(start, end);
 
-    if (!chunk || chunk.size === 0) {
-      console.warn(`创建的分块 #${chunkIndex} 无效或为空, 范围: ${start}-${end}`);
-    } else {
-      console.log(`创建分块 #${chunkIndex}: 范围 ${start}-${end}, 大小: ${chunk.size} 字节`);
+    if (chunk && chunk.size !== 0) {
       chunks.push(chunk);
     }
 
     start = end;
-    chunkIndex++;
   }
 
   console.log(`文件分割完成，总共创建了 ${chunks.length} 个有效分块`);
@@ -231,11 +223,6 @@ const chunkUpload = async (
   chunkSizeParam?: number,
   concurrentChunks = 3,
 ): Promise<UploadResult> => {
-  const totalStartTime = Date.now();
-  console.log(
-    `[性能统计-开始] 文件: ${file.name}, 大小: ${(file.size / (1024 * 1024)).toFixed(2)}MB, 开始上传处理`,
-  );
-
   try {
     const {
       accessKeyId,
@@ -256,32 +243,13 @@ const chunkUpload = async (
     let actualChunkSize = chunkSizeParam || 0;
     if (!actualChunkSize || actualChunkSize === 0) {
       actualChunkSize = getChunkSizeByFileSize(file.size);
-      console.log(
-        `[性能统计] 根据文件大小(${(file.size / (1024 * 1024)).toFixed(2)}MB)自动确定分块大小: ${(actualChunkSize / (1024 * 1024)).toFixed(2)}MB`,
-      );
-    } else {
-      console.log(
-        `[性能统计] 使用指定的分块大小: ${(actualChunkSize / (1024 * 1024)).toFixed(2)}MB`,
-      );
     }
 
-    // 启动MD5计算，但不等待完成
-    const md5StartTime = Date.now();
-    let md5EndTime = 0;
-    console.log(`[性能统计] 开始计算文件MD5，时间: ${new Date(md5StartTime).toLocaleTimeString()}`);
     const md5Result = await getFileMd5(file);
     const { md5, md5Promise, tempId } = md5Result;
 
     let finalMd5 = md5;
     let usingTempId = !!tempId;
-
-    if (usingTempId) {
-      console.log(`[性能统计] 使用临时ID进行上传: ${tempId}，MD5计算将在后台继续进行`);
-    } else {
-      md5EndTime = Date.now();
-      const md5TimeSpent = (md5EndTime - md5StartTime) / 1000;
-      console.log(`[性能统计] 完成MD5计算: ${md5}, 耗时: ${md5TimeSpent.toFixed(2)}秒`);
-    }
 
     // 构建临时文件路径（使用临时ID或已计算完成的MD5）
     const suffix = file.name.slice(file.name.lastIndexOf('.'));
@@ -314,32 +282,15 @@ const chunkUpload = async (
       'Cache-Control': 'max-age=31536000', // 缓存一年
     };
 
-    const initStartTime = Date.now();
-    console.log(
-      `[性能统计] 开始初始化分块上传，文件: ${file.name}, 大小: ${(file.size / (1024 * 1024)).toFixed(2)}MB, 分片大小: ${(actualChunkSize / (1024 * 1024)).toFixed(2)}MB, 并发数: ${concurrentChunks}`,
-    );
     const initResult = await client.initiateMultipartUpload(bucket as string, fileKey, options);
     const uploadId = initResult.body.uploadId;
-    const initEndTime = Date.now();
-    console.log(
-      `[性能统计] 分块上传初始化成功: ${uploadId}, 耗时: ${((initEndTime - initStartTime) / 1000).toFixed(2)}秒`,
-    );
 
     // 分割文件
-    const splitStartTime = Date.now();
     const chunks = splitFileIntoChunks(file, actualChunkSize);
-    const splitEndTime = Date.now();
-    console.log(
-      `[性能统计] 文件分割完成，共 ${chunks.length} 个分块, 耗时: ${((splitEndTime - splitStartTime) / 1000).toFixed(2)}秒`,
-    );
 
     const partList: { partNumber: number; eTag: string }[] = [];
     const failedChunks: number[] = [];
     const chunkTimeRecords: { [key: number]: { start: number; end: number } } = {};
-
-    // 创建一个控制并发的函数
-    const uploadStartTime = Date.now();
-    console.log(`[性能统计] 开始上传分块，时间: ${new Date(uploadStartTime).toLocaleTimeString()}`);
 
     const uploadChunksWithConcurrency = async () => {
       let completedSize = 0;
@@ -370,9 +321,6 @@ const chunkUpload = async (
 
             const chunkStartTime = Date.now();
             chunkTimeRecords[partNumber] = { start: chunkStartTime, end: 0 };
-            console.log(
-              `[性能统计] 开始上传分块 ${partNumber}/${chunks.length}, 大小: ${(chunk.size / (1024 * 1024)).toFixed(2)}MB`,
-            );
 
             // 上传分块
             try {
@@ -387,27 +335,16 @@ const chunkUpload = async (
 
               const chunkEndTime = Date.now();
               chunkTimeRecords[partNumber].end = chunkEndTime;
-              const chunkTimeSpent = (chunkEndTime - chunkStartTime) / 1000;
-              const chunkSpeed = chunk.size / 1024 / 1024 / chunkTimeSpent;
 
               // 添加到分块列表
               partList.push({
                 partNumber,
                 eTag: partResult.http_headers.etag.replace(/"/g, ''),
               });
-
-              console.log(
-                `[性能统计] 分块 ${partNumber}/${chunks.length} 上传完成，耗时: ${chunkTimeSpent.toFixed(2)}秒, 速度: ${chunkSpeed.toFixed(2)}MB/s`,
-              );
             } catch (partError) {
               const chunkEndTime = Date.now();
               chunkTimeRecords[partNumber].end = chunkEndTime;
-              const chunkTimeSpent = (chunkEndTime - chunkStartTime) / 1000;
 
-              console.error(
-                `[性能统计] 分块 ${partNumber} 上传失败, 耗时: ${chunkTimeSpent.toFixed(2)}秒:`,
-                partError,
-              );
               failedChunks.push(chunkIndex);
               // 不终止整个上传过程，让其他分块继续上传
             }
@@ -452,38 +389,9 @@ const chunkUpload = async (
 
     // 并发上传所有分块
     await uploadChunksWithConcurrency();
-    const uploadEndTime = Date.now();
-    const uploadTimeSpent = (uploadEndTime - uploadStartTime) / 1000;
-    console.log(
-      `[性能统计] 所有分块上传完成，总耗时: ${uploadTimeSpent.toFixed(2)}秒, 平均速度: ${(file.size / 1024 / 1024 / uploadTimeSpent).toFixed(2)}MB/s`,
-    );
-
-    // 分析分块上传性能
-    const chunkTimes = Object.entries(chunkTimeRecords).map(([partNumber, times]) => {
-      const timeSpent = (times.end - times.start) / 1000;
-      const chunkSize = chunks[parseInt(partNumber) - 1].size;
-      return {
-        partNumber: parseInt(partNumber),
-        timeSpent,
-        chunkSize,
-        speed: chunkSize / 1024 / 1024 / timeSpent,
-      };
-    });
-
-    const avgTime = chunkTimes.reduce((sum, chunk) => sum + chunk.timeSpent, 0) / chunkTimes.length;
-    const maxTime = Math.max(...chunkTimes.map((chunk) => chunk.timeSpent));
-    const minTime = Math.min(...chunkTimes.map((chunk) => chunk.timeSpent));
-    const avgSpeed = chunkTimes.reduce((sum, chunk) => sum + chunk.speed, 0) / chunkTimes.length;
-
-    console.log(`[性能统计] 分块上传详细统计:
-    - 平均耗时: ${avgTime.toFixed(2)}秒/块
-    - 最大耗时: ${maxTime.toFixed(2)}秒
-    - 最小耗时: ${minTime.toFixed(2)}秒
-    - 平均速度: ${avgSpeed.toFixed(2)}MB/s`);
 
     // 检查是否所有分块都上传成功
     if (failedChunks.length > 0) {
-      console.error(`[性能统计] 有 ${failedChunks.length} 个分块上传失败，分块编号:`, failedChunks);
       throw new Error('部分分块上传失败');
     }
 
@@ -492,15 +400,8 @@ const chunkUpload = async (
 
     // 检查是否有缺失的分块
     if (partList.length !== chunks.length) {
-      console.error(
-        `[性能统计] 分块数量不匹配: 预期 ${chunks.length}, 实际上传 ${partList.length}`,
-      );
       throw new Error('分块数量不匹配');
     }
-
-    // 完成分块上传
-    const completeStartTime = Date.now();
-    console.log(`[性能统计] 开始合并分块，总数: ${partList.length}`);
 
     // 格式化parts列表，确保eTag没有引号
     const formattedParts = partList.map((part) => ({
@@ -513,16 +414,11 @@ const chunkUpload = async (
       // 1. 尝试直接传递parts数组
       await client.completeMultipartUpload(bucket as string, fileKey, uploadId, formattedParts);
     } catch (error1: any) {
-      console.warn('[性能统计] 第一种格式尝试失败:', error1.message);
-
       try {
-        // 2. 尝试传递 {parts: [...]} 格式的对象
         await client.completeMultipartUpload(bucket as string, fileKey, uploadId, {
           parts: formattedParts,
         });
       } catch (error2: any) {
-        console.warn('[性能统计] 第二种格式尝试失败:', error2.message);
-
         try {
           // 3. 尝试使用JSON字符串
           const jsonBody = JSON.stringify({
@@ -530,63 +426,24 @@ const chunkUpload = async (
           });
           await client.completeMultipartUpload(bucket as string, fileKey, uploadId, jsonBody);
         } catch (error3: any) {
-          console.error('[性能统计] 所有格式都失败，错误:', error3);
-
-          // 记录详细错误信息
-          if (error3.response) {
-            console.error('[性能统计] 错误响应:', {
-              status: error3.response.status,
-              headers: error3.response.headers,
-              data: error3.response.data,
-            });
-          }
-
-          throw error3;
+          console.error('分块上传失败:', error3);
         }
       }
     }
 
-    const completeEndTime = Date.now();
-    console.log(
-      `[性能统计] 分块合并完成，耗时: ${((completeEndTime - completeStartTime) / 1000).toFixed(2)}秒`,
-    );
-
     // 如果正在使用临时ID，等待真正的MD5计算完成
-    let mdFinalCalcTime = 0;
     if (usingTempId && md5Promise) {
-      console.log(`[性能统计] 等待MD5计算完成...`);
-      const mdCalcStartTime = Date.now();
-
       // 等待MD5计算完成
       finalMd5 = await md5Promise;
 
-      const mdCalcEndTime = Date.now();
-      mdFinalCalcTime = (mdCalcEndTime - mdCalcStartTime) / 1000;
-      console.log(`[性能统计] MD5计算已完成: ${finalMd5}, 耗时: ${mdFinalCalcTime.toFixed(2)}秒`);
+      console.log(`[性能统计] MD5计算已完成: ${finalMd5}`);
 
       // 保存完整MD5值到文件对象，使用类型断言避免TS错误
       const fileWithMd5 = file as File & { md5?: string };
       if (fileWithMd5.md5 !== finalMd5) {
-        console.log(
-          `[性能统计] 更新文件对象的MD5值: ${fileWithMd5.md5 || 'undefined'} -> ${finalMd5}`,
-        );
         fileWithMd5.md5 = finalMd5;
       }
     }
-
-    // 总时间统计
-    const totalEndTime = Date.now();
-    const totalTimeSpent = (totalEndTime - totalStartTime) / 1000;
-    const mdLogInfo = usingTempId
-      ? `后台计算耗时: ${mdFinalCalcTime.toFixed(2)}秒`
-      : `${((md5EndTime - md5StartTime) / 1000).toFixed(2)}秒 (${(((md5EndTime - md5StartTime) / 1000 / totalTimeSpent) * 100).toFixed(2)}%)`;
-
-    console.log(`[性能统计-完成] 文件: ${file.name} 上传完成，总耗时: ${totalTimeSpent.toFixed(2)}秒，详细耗时:
-    - MD5计算: ${mdLogInfo}
-    - 分块上传: ${uploadTimeSpent.toFixed(2)}秒 (${((uploadTimeSpent / totalTimeSpent) * 100).toFixed(2)}%)
-    - 分块合并: ${((completeEndTime - completeStartTime) / 1000).toFixed(2)}秒 (${(((completeEndTime - completeStartTime) / 1000 / totalTimeSpent) * 100).toFixed(2)}%)
-    - 其他操作: ${(totalTimeSpent - (usingTempId ? 0 : (md5EndTime - md5StartTime) / 1000) - uploadTimeSpent - (completeEndTime - completeStartTime) / 1000).toFixed(2)}秒
-    - 总传输速度: ${(file.size / 1024 / 1024 / totalTimeSpent).toFixed(2)}MB/s`);
 
     // 返回上传结果，URL使用临时ID构建的路径，MD5使用完整的计算结果
     const uploadPath = path + (usingTempId ? tempId : md5) + suffix;
@@ -599,18 +456,11 @@ const chunkUpload = async (
       md5: finalMd5,
     };
   } catch (error) {
-    const totalEndTime = Date.now();
-    console.error(
-      `[性能统计-失败] 文件: ${file.name} 上传失败，总耗时: ${((totalEndTime - totalStartTime) / 1000).toFixed(2)}秒, 错误:`,
-      error,
-    );
-
     // 自动重试逻辑
     if (retryCount < MAX_RETRY_COUNT) {
       // 指数退避策略，避免立即重试
       const delayTime = Math.pow(2, retryCount) * 1000;
 
-      console.log(`[性能统计] 将在 ${delayTime}ms 后重试分块上传...`);
       await delay(delayTime);
 
       // 如果是认证问题，刷新认证
@@ -668,11 +518,6 @@ const customUpload = async (
   concurrentChunks = 3,
   onProgress?: UploadProgressCallback,
 ): Promise<UploadResult> => {
-  const totalStartTime = Date.now();
-  console.log(
-    `[性能统计-开始] 文件: ${file.name}, 大小: ${(file.size / (1024 * 1024)).toFixed(2)}MB, 准备上传`,
-  );
-
   // 参数验证
   if (!file || !(file instanceof File)) {
     throw new Error('无效的文件对象');
@@ -682,295 +527,477 @@ const customUpload = async (
     throw new Error('缺少上传配置');
   }
 
-  const { accessKeyId, accessKeySecret, bucket = '', endPoint = '' } = config;
+  // 获取上传通道类型
+  const { channel = 'bos' } = config;
 
-  // 验证必要的配置参数
-  if (!accessKeyId || !accessKeySecret) {
-    throw new Error('缺少访问凭证(accessKeyId/accessKeySecret)');
-  }
+  // 根据不同的上传通道选择不同的上传方法
+  switch (channel) {
+    case 'bos': {
+      // 百度云BOS上传（现有实现）
+      const { accessKeyId, accessKeySecret, bucket = '', endPoint = '' } = config;
 
-  if (!bucket) {
-    throw new Error('缺少存储桶名称(bucket)');
-  }
+      // 验证必要的配置参数
+      if (!accessKeyId || !accessKeySecret) {
+        throw new Error('缺少访问凭证(accessKeyId/accessKeySecret)');
+      }
 
-  if (!endPoint) {
-    throw new Error('缺少服务端点(endPoint)');
-  }
+      if (!bucket) {
+        throw new Error('缺少存储桶名称(bucket)');
+      }
 
-  // 如果未指定分块大小，根据文件大小自动确定
-  const actualChunkSize = chunkSizeParam || getChunkSizeByFileSize(file.size);
+      if (!endPoint) {
+        throw new Error('缺少服务端点(endPoint)');
+      }
 
-  if (!chunkSizeParam) {
-    console.log(
-      `[性能统计] 未指定分块大小，根据文件大小(${(file.size / (1024 * 1024)).toFixed(2)}MB)自动确定为${(actualChunkSize / (1024 * 1024)).toFixed(2)}MB`,
-    );
-  } else {
-    console.log(`[性能统计] 使用指定的分块大小: ${(actualChunkSize / (1024 * 1024)).toFixed(2)}MB`);
-  }
+      // 如果未指定分块大小，根据文件大小自动确定
+      const actualChunkSize = chunkSizeParam || getChunkSizeByFileSize(file.size);
 
-  // 判断是否使用分块上传
-  if (useChunkUpload && file.size > chunkSizeThreshold) {
-    console.log(
-      `[性能统计] 文件大小(${(file.size / (1024 * 1024)).toFixed(2)}MB)超过阈值(${(chunkSizeThreshold / (1024 * 1024)).toFixed(2)}MB)，使用分块上传，分块大小: ${(actualChunkSize / (1024 * 1024)).toFixed(2)}MB，并发数: ${concurrentChunks}`,
-    );
-    return chunkUpload(file, config, onProgress, retryCount, actualChunkSize, concurrentChunks);
-  }
+      // 判断是否使用分块上传
+      if (useChunkUpload && file.size > chunkSizeThreshold) {
+        return chunkUpload(file, config, onProgress, retryCount, actualChunkSize, concurrentChunks);
+      }
 
-  // 使用普通上传方式
-  try {
-    console.log(`[性能统计] 使用普通上传方式处理文件: ${file.name}`);
-    const {
-      accessKeyId,
-      accessKeySecret,
-      securityToken,
-      endPoint = '',
-      bucket = '',
-      path,
-      host,
-    } = config;
-
-    // 启动MD5计算，但小文件会等待计算完成
-    const md5StartTime = Date.now();
-    let md5EndTime = 0;
-    console.log(`[性能统计] 开始计算文件MD5，时间: ${new Date(md5StartTime).toLocaleTimeString()}`);
-    const md5Result = await getFileMd5(file);
-    const { md5, md5Promise, tempId } = md5Result;
-
-    // 对于小文件，md5Promise应该已经完成，不需要后续处理
-    // 对于中等大小文件(>10MB但<文件分块阈值)，可能需要使用tempId
-    const isMediumFile = file.size > 10 * 1024 * 1024 && file.size <= chunkSizeThreshold;
-    let finalMd5 = md5;
-    let usingTempId = !!tempId && isMediumFile;
-
-    if (usingTempId) {
-      console.log(`[性能统计] 使用临时ID进行上传: ${tempId}，MD5计算将在后台继续进行`);
-    } else {
-      md5EndTime = Date.now();
-      const md5TimeSpent = (md5EndTime - md5StartTime) / 1000;
-      console.log(`[性能统计] 完成MD5计算: ${md5}, 耗时: ${md5TimeSpent.toFixed(2)}秒`);
-    }
-
-    // 构建文件路径（使用临时ID或已计算完成的MD5）
-    const suffix = file.name.slice(file.name.lastIndexOf('.'));
-    const fileKey = path + (usingTempId ? tempId : md5) + suffix;
-
-    // 配置百度云存储客户端
-    const bosConfig = {
-      credentials: {
-        ak: accessKeyId || '',
-        sk: accessKeySecret || '',
-      },
-      sessionToken: securityToken,
-      endpoint: endPoint,
-      connectionTimeoutInMillis: 60000,
-      receiveTimeoutInMillis: 60000,
-    };
-
-    console.log(`[性能统计] 创建BOS客户端连接: 端点=${endPoint}, 存储桶=${bucket}`);
-    const client = new baidubce.BosClient(bosConfig);
-
-    // 获取并设置文件MIME类型
-    const ext = fileKey.split(/\./g).pop() || '';
-    let mimeType = baidubce.MimeType.guess(ext);
-    if (/^text\//.test(mimeType)) {
-      mimeType += '; charset=UTF-8';
-    }
-
-    console.log(
-      `[性能统计] 上传文件: ${file.name}, 类型: ${mimeType}, 大小: ${(file.size / (1024 * 1024)).toFixed(2)}MB`,
-    );
-
-    // 对于小文件，也使用分块上传API，但只上传一个分块
-    // 初始化分块上传
-    const initStartTime = Date.now();
-    const options = {
-      'Content-Type': mimeType,
-      'Cache-Control': 'max-age=31536000', // 缓存一年
-    };
-
-    const initResult = await client.initiateMultipartUpload(bucket as string, fileKey, options);
-    const uploadId = initResult.body.uploadId;
-    const initEndTime = Date.now();
-    console.log(
-      `[性能统计] 小文件分块上传初始化成功: ${uploadId}, 耗时: ${((initEndTime - initStartTime) / 1000).toFixed(2)}秒`,
-    );
-
-    // 尝试上传单个分块
-    const uploadStartTime = Date.now();
-    const partNumber = 1;
-
-    // 上传文件
-    console.log(`[性能统计] 开始上传小文件，大小: ${(file.size / (1024 * 1024)).toFixed(2)}MB`);
-    const partResult = await client.uploadPartFromBlob(
-      bucket as string,
-      fileKey,
-      uploadId,
-      partNumber,
-      file.size,
-      file,
-    );
-
-    const uploadEndTime = Date.now();
-    const uploadTimeSpent = (uploadEndTime - uploadStartTime) / 1000;
-    const uploadSpeed = file.size / 1024 / 1024 / uploadTimeSpent;
-    console.log(
-      `[性能统计] 小文件上传完成，耗时: ${uploadTimeSpent.toFixed(2)}秒, 速度: ${uploadSpeed.toFixed(2)}MB/s`,
-    );
-
-    // 完成分块上传
-    const completeStartTime = Date.now();
-    const partList = [
-      {
-        partNumber: partNumber,
-        eTag: partResult.http_headers.etag.replace(/"/g, ''), // 移除可能的引号
-      },
-    ];
-
-    console.log(`[性能统计] 小文件分块列表: ${JSON.stringify(partList)}`);
-
-    try {
-      // 1. 尝试直接传递parts数组
-      await client.completeMultipartUpload(bucket as string, fileKey, uploadId, partList);
-    } catch (error1: any) {
-      console.warn('[性能统计] 小文件合并-第一种格式尝试失败:', error1.message);
-
+      // 使用普通上传方式
       try {
-        // 2. 尝试传递 {parts: [...]} 格式的对象
-        await client.completeMultipartUpload(bucket as string, fileKey, uploadId, {
-          parts: partList,
-        });
-      } catch (error2: any) {
-        console.warn('[性能统计] 小文件合并-第二种格式尝试失败:', error2.message);
+        const {
+          accessKeyId,
+          accessKeySecret,
+          securityToken,
+          endPoint = '',
+          bucket = '',
+          path,
+          host,
+        } = config;
+
+        const md5Result = await getFileMd5(file);
+        const { md5, md5Promise, tempId } = md5Result;
+
+        // 对于小文件，md5Promise应该已经完成，不需要后续处理
+        // 对于中等大小文件(>10MB但<文件分块阈值)，可能需要使用tempId
+        const isMediumFile = file.size > 10 * 1024 * 1024 && file.size <= chunkSizeThreshold;
+        let finalMd5 = md5;
+        let usingTempId = !!tempId && isMediumFile;
+
+        // 构建文件路径（使用临时ID或已计算完成的MD5）
+        const suffix = file.name.slice(file.name.lastIndexOf('.'));
+        const fileKey = path + (usingTempId ? tempId : md5) + suffix;
+
+        // 配置百度云存储客户端
+        const bosConfig = {
+          credentials: {
+            ak: accessKeyId || '',
+            sk: accessKeySecret || '',
+          },
+          sessionToken: securityToken,
+          endpoint: endPoint,
+          connectionTimeoutInMillis: 60000,
+          receiveTimeoutInMillis: 60000,
+        };
+
+        const client = new baidubce.BosClient(bosConfig);
+
+        // 获取并设置文件MIME类型
+        const ext = fileKey.split(/\./g).pop() || '';
+        let mimeType = baidubce.MimeType.guess(ext);
+        if (/^text\//.test(mimeType)) {
+          mimeType += '; charset=UTF-8';
+        }
+
+        // 对于小文件，也使用分块上传API，但只上传一个分块
+        // 初始化分块上传
+        const options = {
+          'Content-Type': mimeType,
+          'Cache-Control': 'max-age=31536000', // 缓存一年
+        };
+
+        const initResult = await client.initiateMultipartUpload(bucket as string, fileKey, options);
+        const uploadId = initResult.body.uploadId;
+
+        const partNumber = 1;
+
+        // 上传文件
+        const partResult = await client.uploadPartFromBlob(
+          bucket as string,
+          fileKey,
+          uploadId,
+          partNumber,
+          file.size,
+          file,
+        );
+
+        // 完成分块上传
+        const partList = [
+          {
+            partNumber: partNumber,
+            eTag: partResult.http_headers.etag.replace(/"/g, ''), // 移除可能的引号
+          },
+        ];
 
         try {
-          // 3. 尝试使用JSON字符串
-          const jsonBody = JSON.stringify({
-            parts: partList,
-          });
-          console.log('[性能统计] 小文件-使用字符串JSON格式:', jsonBody);
-          await client.completeMultipartUpload(bucket as string, fileKey, uploadId, jsonBody);
-        } catch (error3: any) {
-          console.error('[性能统计] 小文件-所有格式都失败，错误:', error3);
-
-          // 记录详细错误信息
-          if (error3.response) {
-            console.error('[性能统计] 小文件-错误响应:', {
-              status: error3.response.status,
-              headers: error3.response.headers,
-              data: error3.response.data,
+          // 1. 尝试直接传递parts数组
+          await client.completeMultipartUpload(bucket as string, fileKey, uploadId, partList);
+        } catch (error1: any) {
+          try {
+            // 2. 尝试传递 {parts: [...]} 格式的对象
+            await client.completeMultipartUpload(bucket as string, fileKey, uploadId, {
+              parts: partList,
             });
+          } catch (error2: any) {
+            try {
+              // 3. 尝试使用JSON字符串
+              const jsonBody = JSON.stringify({
+                parts: partList,
+              });
+              await client.completeMultipartUpload(bucket as string, fileKey, uploadId, jsonBody);
+            } catch (error3: any) {
+              // 记录详细错误信息
+              if (error3.response) {
+              }
+
+              throw error3;
+            }
+          }
+        }
+
+        // 更新进度
+        if (onProgress) {
+          onProgress(100);
+        }
+
+        // 如果正在使用临时ID，等待真正的MD5计算完成
+        if (usingTempId && md5Promise) {
+          // 等待MD5计算完成
+          finalMd5 = await md5Promise;
+
+          // 保存完整MD5值到文件对象，使用类型断言避免TS错误
+          const fileWithMd5 = file as File & { md5?: string };
+          if (fileWithMd5.md5 !== finalMd5) {
+            fileWithMd5.md5 = finalMd5;
+          }
+        }
+
+        // 返回上传结果，URL使用临时ID构建的路径，MD5使用完整的计算结果
+        const uploadPath = path + (usingTempId ? tempId : md5) + suffix;
+        return {
+          url: host + uploadPath,
+          success: true,
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          md5: finalMd5,
+        };
+      } catch (error) {
+        // 自动重试逻辑
+        if (retryCount < MAX_RETRY_COUNT) {
+          // 指数退避策略，避免立即重试
+          const delayTime = Math.pow(2, retryCount) * 1000;
+
+          await delay(delayTime);
+
+          // 如果是认证问题，刷新认证
+          try {
+            const freshConfig = await isExpired();
+            // 合并配置，确保使用最新的认证信息
+            const updatedConfig = { ...config, ...freshConfig };
+
+            // 重试上传
+            return await customUpload(
+              file,
+              updatedConfig,
+              retryCount + 1,
+              useChunkUpload,
+              chunkSizeThreshold,
+              chunkSizeParam,
+              concurrentChunks,
+              onProgress,
+            );
+          } catch (refreshError) {
+            return await customUpload(
+              file,
+              config,
+              retryCount + 1,
+              useChunkUpload,
+              chunkSizeThreshold,
+              chunkSizeParam,
+              concurrentChunks,
+              onProgress,
+            );
+          }
+        }
+
+        // 已达到最大重试次数，抛出异常
+        throw error;
+      }
+    }
+
+    case 'oss': {
+      // 阿里云OSS上传预留接口
+
+      // 获取和验证必要参数
+      const { accessKeyId, accessKeySecret, bucket = '', endPoint = '', path, host } = config;
+
+      console.log(host);
+      if (!accessKeyId || !accessKeySecret || !bucket || !endPoint) {
+        throw new Error('缺少OSS必要的配置参数');
+      }
+
+      const md5Result = await getFileMd5(file);
+      const { md5, md5Promise, tempId } = md5Result;
+
+      // 构建文件路径
+      const suffix = file.name.slice(file.name.lastIndexOf('.'));
+      const fileKey = path + md5 + suffix;
+      console.log(md5Promise, tempId, fileKey);
+      // TODO: 实现OSS上传逻辑
+      // 如果需要分块上传
+      if (useChunkUpload && file.size > chunkSizeThreshold) {
+        // TODO: 实现OSS分块上传
+      } else {
+        // TODO: 实现OSS普通上传
+      }
+
+      // 临时返回模拟结果
+      throw new Error('阿里云OSS上传功能尚未实现');
+    }
+
+    case 'cos': {
+      // 腾讯云COS上传预留接口
+
+      // 获取和验证必要参数
+      const { accessKeyId, accessKeySecret, bucket = '', endPoint = '', path, host } = config;
+
+      if (!accessKeyId || !accessKeySecret || !bucket || !endPoint) {
+        throw new Error('缺少COS必要的配置参数');
+      }
+
+      // MD5计算逻辑保持一致
+      const md5StartTime = Date.now();
+      console.log(
+        `[性能统计] 开始计算文件MD5，时间: ${new Date(md5StartTime).toLocaleTimeString()}`,
+      );
+      const md5Result = await getFileMd5(file);
+      const { md5, md5Promise, tempId } = md5Result;
+
+      // 构建文件路径
+      const suffix = file.name.slice(file.name.lastIndexOf('.'));
+      const fileKey = path + md5 + suffix;
+
+      console.log(host, md5Promise, tempId, fileKey);
+      // TODO: 实现COS上传逻辑
+      // 如果需要分块上传
+      if (useChunkUpload && file.size > chunkSizeThreshold) {
+        console.log(
+          `[COS上传] 文件大小${(file.size / (1024 * 1024)).toFixed(2)}MB超过阈值，使用COS分块上传`,
+        );
+        // TODO: 实现COS分块上传
+      } else {
+        console.log(`[COS上传] 使用COS普通上传`);
+        // TODO: 实现COS普通上传
+      }
+
+      // 临时返回模拟结果
+      throw new Error('腾讯云COS上传功能尚未实现');
+    }
+
+    case 'server': {
+      // 自定义服务器上传预留接口
+
+      // 获取和验证必要参数
+      const { path, host } = config;
+
+      // MD5计算逻辑保持一致 for the whole file
+      const overallFileMd5Result = await getFileMd5(file);
+      const {
+        md5: overallFileMd5,
+        md5Promise: overallFileMd5Promise,
+        tempId: overallFileTempId,
+      } = overallFileMd5Result;
+      let finalOverallMd5 = overallFileMd5;
+      let usingOverallTempId = !!overallFileTempId;
+
+      if (usingOverallTempId) {
+        console.log(
+          `[性能统计][Server] 使用临时ID进行上传: ${overallFileTempId}，完整文件MD5计算将在后台继续进行`,
+        );
+      } else {
+        console.log(`[性能统计][Server] 完成完整文件MD5计算: ${overallFileMd5}`);
+      }
+
+      // 构建文件路径
+      const suffix = file.name.slice(file.name.lastIndexOf('.'));
+      // Ensure suffix starts with a dot if it exists, or is an empty string
+      const normalizedSuffix =
+        suffix && suffix.startsWith('.') ? suffix : suffix ? `.${suffix}` : '';
+      const fileKey =
+        path + (usingOverallTempId ? overallFileTempId : overallFileMd5) + normalizedSuffix;
+
+      // 如果需要分块上传
+      if (useChunkUpload && file.size > chunkSizeThreshold) {
+        console.log(
+          `[Server上传] 文件大小(${(file.size / (1024 * 1024)).toFixed(2)}MB)超过阈值(${
+            chunkSizeThreshold / (1024 * 1024)
+          }MB)，使用服务器分块上传。指定分块大小: ${chunkSizeParam ? `${chunkSizeParam / (1024 * 1024)}MB` : '未指定'}, 并发数: ${concurrentChunks}`,
+        );
+
+        // 确定分片大小: 优先使用 chunkSizeParam (来自组件的 chunkSize prop), 否则使用默认值
+
+        const actualChunkSize = chunkSizeParam || getChunkSizeByFileSize(file.size);
+        const chunks = splitFileIntoChunks(file, actualChunkSize);
+        const totalChunks = chunks.length;
+        let uploadedBytes = 0;
+
+        const uploadChunk = async (chunk: Blob, index: number): Promise<void> => {
+          const chunkNumber = index + 1;
+          const chunkFileForUpload = new File([chunk], `${file.name}-part-${chunkNumber}`, {
+            type: file.type,
+          });
+
+          // 计算分片MD5 - 使用 getFileMd5
+          let chunkSpecificMd5 = '';
+          try {
+            // Create a File object from the chunk Blob to pass to getFileMd5
+            const chunkFileForMd5 = new File([chunk], `chunk_${chunkNumber}_md5`, {
+              type: chunk.type,
+            });
+            const chunkMd5Result = await getFileMd5(chunkFileForMd5);
+            chunkSpecificMd5 = chunkMd5Result.md5; // Assuming .md5 is the direct result for small files/chunks
+            if (!chunkSpecificMd5) {
+              // Handle cases where md5 might be in md5Promise for some reason, though unlikely for small chunks
+              if (chunkMd5Result.md5Promise) {
+                chunkSpecificMd5 = await chunkMd5Result.md5Promise;
+              } else {
+                throw new Error('Chunk MD5 calculation returned no direct md5 or md5Promise');
+              }
+            }
+          } catch (md5Error) {
+            console.error(
+              `[Server上传] 分片 ${chunkNumber}/${totalChunks} MD5 计算失败:`,
+              md5Error,
+            );
+            throw new Error(`分片 ${chunkNumber} MD5 计算失败`);
           }
 
-          throw error3;
+          console.log(
+            `[Server上传] 开始上传分片 ${chunkNumber}/${totalChunks}, 大小: ${(chunk.size / (1024 * 1024)).toFixed(2)}MB, MD5: ${chunkSpecificMd5}`,
+          );
+
+          try {
+            await uploadFileService({
+              key: fileKey, // Key for the entire file
+              file: chunkFileForUpload, // The chunk itself as a File object for upload
+              chunkIndex: index.toString(), // Changed from chunkNumber.toString() to index.toString()
+              chunkTotal: totalChunks.toString(),
+              chunkHash: chunkSpecificMd5, // MD5 of the current chunk
+            });
+
+            uploadedBytes += chunk.size;
+            if (onProgress) {
+              const progress = Math.floor((uploadedBytes / file.size) * 100);
+              onProgress(progress);
+            }
+            console.log(`[Server上传] 分片 ${chunkNumber}/${totalChunks} 上传成功`);
+          } catch (uploadError) {
+            console.error(`[Server上传] 分片 ${chunkNumber}/${totalChunks} 上传失败:`, uploadError);
+            throw uploadError; // Propagate error to stop Promise.all or handle retry
+          }
+        };
+
+        const uploadTasks = chunks.map((chunk, index) => () => uploadChunk(chunk, index));
+
+        // Simple concurrency limit
+        const results = [];
+        const executing = new Set();
+        for (const task of uploadTasks) {
+          const promise = task()
+            .then((result) => {
+              executing.delete(promise);
+              return result;
+            })
+            .catch((err) => {
+              executing.delete(promise);
+              throw err;
+            });
+          executing.add(promise);
+          results.push(promise);
+          if (executing.size >= concurrentChunks) {
+            await Promise.race(executing);
+          }
+        }
+        await Promise.all(results);
+
+        // 所有分片上传成功后
+        if (onProgress) {
+          onProgress(100); // Ensure 100% is reported
+        }
+
+        // 如果正在使用临时ID，等待真正的MD5计算完成
+        if (usingOverallTempId && overallFileMd5Promise) {
+          finalOverallMd5 = await overallFileMd5Promise;
+          console.log(`[性能统计][Server] 完整文件MD5计算已完成: ${finalOverallMd5}`);
+          const fileWithMd5 = file as File & { md5?: string };
+          if (fileWithMd5.md5 !== finalOverallMd5) {
+            fileWithMd5.md5 = finalOverallMd5;
+          }
+        }
+
+        return {
+          url: host + fileKey, // URL of the reassembled file
+          success: true,
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          md5: finalOverallMd5,
+        };
+      } else {
+        // 原有的普通服务器上传逻辑
+        console.log(
+          `[Server上传] 使用服务器普通上传，文件大小: ${(file.size / (1024 * 1024)).toFixed(2)}MB`,
+        );
+
+        try {
+          const uploadParams: CommonType.UploadFileParams = {
+            key: fileKey,
+            file: file,
+            // No chunk parameters for plain upload
+          };
+
+          /*const response =*/ await uploadFileService(uploadParams); // Use aliased service, response not used
+
+          if (onProgress) {
+            onProgress(100);
+          }
+
+          if (usingOverallTempId && overallFileMd5Promise) {
+            finalOverallMd5 = await overallFileMd5Promise;
+            console.log(`[性能统计][Server] 完整文件MD5计算已完成: ${finalOverallMd5}`);
+            const fileWithMd5 = file as File & { md5?: string };
+            if (fileWithMd5.md5 !== finalOverallMd5) {
+              fileWithMd5.md5 = finalOverallMd5;
+            }
+          }
+
+          // The 'uploadFileService' returns BaseResponse<void>, so success is implicit if no error
+          // The 'response' variable here from `await uploadFileService` will be the BaseResponse<void>
+          // We need to ensure our UploadResult format.
+          // Assuming 'host + fileKey' is the accessible URL.
+          return {
+            url: host + fileKey,
+            success: true, // Assumed success if no error from uploadFileService
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type,
+            md5: finalOverallMd5,
+          };
+        } catch (error: any) {
+          // 普通上传的重试逻辑 (已存在于代码末尾的catch块中，会处理此处的抛出)
+          console.error(`[Server上传][普通] 失败 (key: ${fileKey}):`, error);
+          throw error; // Re-throw to be handled by the main retry logic of customUpload
         }
       }
     }
-    const completeEndTime = Date.now();
-    console.log(
-      `[性能统计] 小文件分块合并完成，耗时: ${((completeEndTime - completeStartTime) / 1000).toFixed(2)}秒`,
-    );
 
-    // 更新进度
-    if (onProgress) {
-      onProgress(100);
-    }
-
-    // 如果正在使用临时ID，等待真正的MD5计算完成
-    let mdFinalCalcTime = 0;
-    if (usingTempId && md5Promise) {
-      console.log(`[性能统计] 等待MD5计算完成...`);
-      const mdCalcStartTime = Date.now();
-
-      // 等待MD5计算完成
-      finalMd5 = await md5Promise;
-
-      const mdCalcEndTime = Date.now();
-      mdFinalCalcTime = (mdCalcEndTime - mdCalcStartTime) / 1000;
-      console.log(`[性能统计] MD5计算已完成: ${finalMd5}, 耗时: ${mdFinalCalcTime.toFixed(2)}秒`);
-
-      // 保存完整MD5值到文件对象，使用类型断言避免TS错误
-      const fileWithMd5 = file as File & { md5?: string };
-      if (fileWithMd5.md5 !== finalMd5) {
-        console.log(
-          `[性能统计] 更新文件对象的MD5值: ${fileWithMd5.md5 || 'undefined'} -> ${finalMd5}`,
-        );
-        fileWithMd5.md5 = finalMd5;
-      }
-    }
-
-    // 总时间统计
-    const totalEndTime = Date.now();
-    const totalTimeSpent = (totalEndTime - totalStartTime) / 1000;
-    const mdLogInfo = usingTempId
-      ? `后台计算耗时: ${mdFinalCalcTime.toFixed(2)}秒`
-      : `${((md5EndTime - md5StartTime) / 1000).toFixed(2)}秒 (${(((md5EndTime - md5StartTime) / 1000 / totalTimeSpent) * 100).toFixed(2)}%)`;
-
-    console.log(`[性能统计-完成] 文件: ${file.name} 上传完成，总耗时: ${totalTimeSpent.toFixed(2)}秒，详细耗时:
-    - MD5计算: ${mdLogInfo}
-    - 上传操作: ${uploadTimeSpent.toFixed(2)}秒 (${((uploadTimeSpent / totalTimeSpent) * 100).toFixed(2)}%)
-    - 分块合并: ${((completeEndTime - completeStartTime) / 1000).toFixed(2)}秒 (${(((completeEndTime - completeStartTime) / 1000 / totalTimeSpent) * 100).toFixed(2)}%)
-    - 其他操作: ${(totalTimeSpent - (usingTempId ? 0 : (md5EndTime - md5StartTime) / 1000) - uploadTimeSpent - (completeEndTime - completeStartTime) / 1000).toFixed(2)}秒
-    - 总传输速度: ${(file.size / 1024 / 1024 / totalTimeSpent).toFixed(2)}MB/s`);
-
-    // 返回上传结果，URL使用临时ID构建的路径，MD5使用完整的计算结果
-    const uploadPath = path + (usingTempId ? tempId : md5) + suffix;
-    return {
-      url: host + uploadPath,
-      success: true,
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-      md5: finalMd5,
-    };
-  } catch (error) {
-    const totalEndTime = Date.now();
-    console.error(
-      `[性能统计-失败] 文件: ${file.name} 上传失败，总耗时: ${((totalEndTime - totalStartTime) / 1000).toFixed(2)}秒, 错误:`,
-      error,
-    );
-
-    // 自动重试逻辑
-    if (retryCount < MAX_RETRY_COUNT) {
-      // 指数退避策略，避免立即重试
-      const delayTime = Math.pow(2, retryCount) * 1000;
-
-      console.log(`[性能统计] 将在 ${delayTime}ms 后重试上传...`);
-      await delay(delayTime);
-
-      // 如果是认证问题，刷新认证
-      try {
-        const freshConfig = await isExpired();
-        // 合并配置，确保使用最新的认证信息
-        const updatedConfig = { ...config, ...freshConfig };
-
-        // 重试上传
-        return await customUpload(
-          file,
-          updatedConfig,
-          retryCount + 1,
-          useChunkUpload,
-          chunkSizeThreshold,
-          chunkSizeParam,
-          concurrentChunks,
-          onProgress,
-        );
-      } catch (refreshError) {
-        console.error('[性能统计] 刷新认证失败，继续使用原配置重试:', refreshError);
-        return await customUpload(
-          file,
-          config,
-          retryCount + 1,
-          useChunkUpload,
-          chunkSizeThreshold,
-          chunkSizeParam,
-          concurrentChunks,
-          onProgress,
-        );
-      }
-    }
-
-    // 已达到最大重试次数，抛出异常
-    throw error;
+    default:
+      throw new Error(`不支持的上传通道类型: ${channel}`);
   }
 };
 

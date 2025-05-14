@@ -9,10 +9,9 @@
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
  */
 
-import type { RequestConfig } from '@umijs/max';
+import type { AxiosRequestConfig, RequestConfig, AxiosResponse } from '@umijs/max';
 import { history } from '@umijs/max';
 import { message } from 'antd';
-import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // API响应数据结构定义
 interface ResponseStructure {

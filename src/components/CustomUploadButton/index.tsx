@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
  * @Date: 2023-03-30 16:17:04
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-05-09 09:22:38
+ * @LastEditTime: 2025-05-13 16:43:17
  * @FilePath: \Antd-pro-Templete\src\components\CustomUploadButton\index.tsx
  * @Description: 自定义上传按钮组件
  *
@@ -402,7 +402,7 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
   const getUploadAction = useCallback(async (): Promise<string> => {
     try {
       const { endPoint } = await isExpired();
-      return endPoint || API_URL + '/upload';
+      return endPoint || 'http://vrspace.lo/api/console/upload';
     } catch (error) {
       console.error('获取上传地址失败:', error);
       return API_URL + '/upload';

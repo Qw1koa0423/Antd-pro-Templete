@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
  * @Date: 2023-03-31 11:14:46
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-04-08 14:17:39
+ * @LastEditTime: 2025-05-13 16:23:18
  * @FilePath: \Antd-pro-Templete\src\utils\signature.tsx
  * @Description: 云存储签名生成工具
  *
@@ -184,12 +184,12 @@ const serverSignature = (config: ConfigProps): ServerSignature => {
   try {
     // 服务器端上传模式通常不需要客户端签名
     // 这里可以添加自定义的token或其他授权信息
-    const timestamp = Date.now().toString();
-    const signature = HmacSHA256(timestamp, config.accessKeySecret || '').toString();
-
+    // const timestamp = Date.now().toString();
+    // const signature = HmacSHA256(timestamp, config.accessKeySecret || '').toString();
+    console.log(config);
     return {
-      token: config.securityToken || signature,
-      timestamp,
+      // token: config.securityToken || signature,
+      // timestamp,
     };
   } catch (error) {
     console.error('服务器签名生成失败:', error);
