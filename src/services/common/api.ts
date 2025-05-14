@@ -2,7 +2,7 @@
  * @Author: Liu Haoqi liuhaoqw1ko@gmail.com
  * @Date: 2024-03-18 11:16:07
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-05-13 10:46:32
+ * @LastEditTime: 2025-05-14 15:57:04
  * @FilePath: \Antd-pro-Templete\src\services\common\api.ts
  * @Description: 公共分类接口
  *
@@ -52,8 +52,15 @@ export async function uploadFile(params: CommonType.UploadFileParams) {
   formData.append('key', params.key);
   formData.append('file', params.file);
 
+  const userInfo =
+    window.localStorage.getItem('userInfo') || window.sessionStorage.getItem('userInfo');
+  const token = userInfo ? JSON.parse(userInfo).token : null;
+
   return request<API.BaseResponse<void>>(`${API_URL}/upload`, {
     method: 'POST',
+    headers: {
+      'X-Auth-Token': token,
+    },
     data: formData,
   });
 }
