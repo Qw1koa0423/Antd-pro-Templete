@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
  * @Date: 2023-04-03 11:48:23
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-05-14 15:48:29
+ * @LastEditTime: 2025-06-03 11:10:29
  * @FilePath: \Antd-pro-Templete\src\utils\upload.ts
  * @Description: web直接上传
  *
@@ -93,15 +93,28 @@ const getChunkSizeByFileSize = (fileSize: number): number => {
     // 200-500M，每个分片大小10M
     return 10 * MB;
   } else if (fileSize <= 2048 * MB) {
-    // 500M-2048M，每个分片大小20M
     return 20 * MB;
   } else if (fileSize <= 4096 * MB) {
-    // 2048M-4096M，每个分片大小40M
     return 40 * MB;
   } else {
-    // 4096M以上，最大100个分片
-    const maxChunkNumber = Math.min(Math.ceil(fileSize / (50 * MB)), 104);
-    return fileSize / maxChunkNumber;
+    return 50 * MB;
+  }
+};
+
+/**
+ * 根据文件大小确定并发上传数量
+ * @param fileSize 文件大小（字节）
+ * @returns 并发上传数量
+ */
+const getConcurrentByFileSize = (fileSize: number): number => {
+  const MB = 1024 * 1024;
+
+  if (fileSize <= 2048 * MB) {
+    return 5;
+  } else if (fileSize <= 4096 * MB) {
+    return 4;
+  } else {
+    return 3;
   }
 };
 
@@ -527,6 +540,9 @@ const customUpload = async (
     throw new Error('缺少上传配置');
   }
 
+  // 根据文件大小确定并发数
+  const actualConcurrentChunks = getConcurrentByFileSize(file.size);
+
   // 获取上传通道类型
   const { channel = 'bos' } = config;
 
@@ -554,7 +570,14 @@ const customUpload = async (
 
       // 判断是否使用分块上传
       if (useChunkUpload && file.size > chunkSizeThreshold) {
-        return chunkUpload(file, config, onProgress, retryCount, actualChunkSize, concurrentChunks);
+        return chunkUpload(
+          file,
+          config,
+          onProgress,
+          retryCount,
+          actualChunkSize,
+          actualConcurrentChunks,
+        );
       }
 
       // 使用普通上传方式
@@ -836,7 +859,7 @@ const customUpload = async (
         console.log(
           `[Server上传] 文件大小(${(file.size / (1024 * 1024)).toFixed(2)}MB)超过阈值(${
             chunkSizeThreshold / (1024 * 1024)
-          }MB)，使用服务器分块上传。指定分块大小: ${chunkSizeParam ? `${chunkSizeParam / (1024 * 1024)}MB` : '未指定'}, 并发数: ${concurrentChunks}`,
+          }MB)，使用服务器分块上传。指定分块大小: ${chunkSizeParam ? `${chunkSizeParam / (1024 * 1024)}MB` : '未指定'}, 并发数: ${actualConcurrentChunks}`,
         );
 
         // 确定分片大小: 优先使用 chunkSizeParam (来自组件的 chunkSize prop), 否则使用默认值
@@ -919,7 +942,7 @@ const customUpload = async (
             });
           executing.add(promise);
           results.push(promise);
-          if (executing.size >= concurrentChunks) {
+          if (executing.size >= actualConcurrentChunks) {
             await Promise.race(executing);
           }
         }
@@ -1068,4 +1091,4 @@ const batchUpload = async (
   return results;
 };
 
-export { customUpload, batchUpload, isExpired };
+export { customUpload, batchUpload, isExpired, getConcurrentByFileSize };

@@ -10,7 +10,7 @@
  */
 import { getFileMd5, getFileWH, getVideoThumbImg } from './dealwithfile';
 import getSignature from './signature';
-import { batchUpload, customUpload, isExpired } from './upload';
+import { batchUpload, customUpload, isExpired, getConcurrentByFileSize } from './upload';
 export {
   getFileMd5,
   getFileWH,
@@ -19,4 +19,5 @@ export {
   customUpload,
   batchUpload,
   isExpired,
+  getConcurrentByFileSize,
 };

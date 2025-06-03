@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
  * @Date: 2023-04-03 13:09:16
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-05-14 13:03:28
+ * @LastEditTime: 2025-06-03 11:10:13
  * @FilePath: \Antd-pro-Templete\src\utils\dealwithfile.ts
  * @Description:
  *
@@ -40,15 +40,14 @@ const getChunkSizeByFileSize = (fileSize: number): number => {
     // 200-500M，每个分片大小10M
     return 10 * MB;
   } else if (fileSize <= 2048 * MB) {
-    // 500M-2048M，每个分片大小20M
+    //5个
     return 20 * MB;
   } else if (fileSize <= 4096 * MB) {
-    // 2048M-4096M，每个分片大小40M
+    //4个
     return 40 * MB;
   } else {
-    // 4096M以上，最大105个分片
-    const maxChunkNumber = Math.min(Math.ceil(fileSize / (50 * MB)), 105);
-    return fileSize / maxChunkNumber;
+    //3个
+    return 50 * MB;
   }
 };
 

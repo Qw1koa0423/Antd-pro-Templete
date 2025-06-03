@@ -2,13 +2,20 @@
  * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
  * @Date: 2023-03-30 16:17:04
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-05-13 16:43:17
- * @FilePath: \Antd-pro-Templete\src\components\CustomUploadButton\index.tsx
+ * @LastEditTime: 2025-05-14 16:10:29
+ * @FilePath: \vr-space-console-local\src\components\CustomUploadButton\index.tsx
  * @Description: 自定义上传按钮组件
  *
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
  */
-import { customUpload, getFileMd5, getFileWH, getSignature, isExpired } from '@/utils';
+import {
+  customUpload,
+  getConcurrentByFileSize,
+  getFileMd5,
+  getFileWH,
+  getSignature,
+  isExpired,
+} from '@/utils';
 import {
   ProFormUploadButton,
   ProFormUploadButtonProps,
@@ -321,8 +328,11 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
 
             // 根据文件大小决定是否使用分块上传
             if (chunkUpload && uploadFile.size > fileSizeForChunk) {
+              // 根据文件大小确定并发数
+              const dynamicConcurrentChunks = getConcurrentByFileSize(uploadFile.size);
+
               console.log(
-                `使用分块上传，文件大小: ${uploadFile.size}，阈值: ${fileSizeForChunk}，并发数: ${concurrentChunks}，${chunkSize ? `指定分块大小: ${chunkSize}字节` : '使用自动分块大小'}`,
+                `使用分块上传，文件大小: ${uploadFile.size}，阈值: ${fileSizeForChunk}，并发数: ${dynamicConcurrentChunks}，${chunkSize ? `指定分块大小: ${chunkSize}字节` : '使用自动分块大小'}`,
               );
 
               // 调用customUpload函数，传递分块上传参数
@@ -333,7 +343,7 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
                 true, // 启用分块上传
                 fileSizeForChunk, // 分块大小阈值
                 chunkSize, // 分块大小，如果未指定则会自动根据文件大小确定
-                concurrentChunks, // 并发上传数量
+                dynamicConcurrentChunks, // 并发上传数量
                 (percent) => {
                   if (onProgress) {
                     onProgress({ percent });
