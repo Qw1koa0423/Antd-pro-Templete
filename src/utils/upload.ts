@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
  * @Date: 2023-04-03 11:48:23
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-06-03 11:10:29
+ * @LastEditTime: 2025-06-03 17:16:16
  * @FilePath: \Antd-pro-Templete\src\utils\upload.ts
  * @Description: web直接上传
  *
@@ -224,8 +224,9 @@ const splitFileIntoChunks = (file: File, chunkSize = DEFAULT_CHUNK_SIZE): Blob[]
  * @param config 上传配置
  * @param onProgress 进度回调函数
  * @param retryCount 当前重试次数
- * @param chunkSize 分块大小（字节）
+ * @param chunkSizeParam 分块大小（字节），如果未指定，则根据文件大小自动确定
  * @param concurrentChunks 并发上传分块数量
+ * @param abortSignal 取消信号
  * @returns 上传结果
  */
 const chunkUpload = async (
@@ -235,8 +236,14 @@ const chunkUpload = async (
   retryCount = 0,
   chunkSizeParam?: number,
   concurrentChunks = 3,
+  abortSignal?: AbortSignal,
 ): Promise<UploadResult> => {
   try {
+    // 检查是否已被取消
+    if (abortSignal?.aborted) {
+      throw new Error('Upload cancelled');
+    }
+
     const {
       accessKeyId,
       accessKeySecret,
@@ -313,6 +320,11 @@ const chunkUpload = async (
       return new Promise<void>((resolve) => {
         // 上传单个分块的函数
         const uploadChunk = async (chunkIndex: number) => {
+          // 检查是否已被取消
+          if (abortSignal?.aborted) {
+            throw new Error('Upload cancelled');
+          }
+
           if (chunkIndex >= chunks.length) {
             // 所有分块已经开始上传
             if (activeUploads === 0) {
@@ -490,6 +502,7 @@ const chunkUpload = async (
           retryCount + 1,
           chunkSizeParam,
           concurrentChunks,
+          abortSignal,
         );
       } catch (refreshError) {
         console.error('[性能统计] 刷新认证失败，继续使用原配置重试:', refreshError);
@@ -500,6 +513,7 @@ const chunkUpload = async (
           retryCount + 1,
           chunkSizeParam,
           concurrentChunks,
+          abortSignal,
         );
       }
     }
@@ -519,6 +533,7 @@ const chunkUpload = async (
  * @param chunkSizeParam 分块大小（字节），如果未指定，则根据文件大小自动确定
  * @param concurrentChunks 并发上传分块数量
  * @param onProgress 进度回调函数
+ * @param abortSignal 取消信号
  * @returns 返回上传结果，包含文件URL
  */
 const customUpload = async (
@@ -530,6 +545,7 @@ const customUpload = async (
   chunkSizeParam?: number,
   concurrentChunks = 3,
   onProgress?: UploadProgressCallback,
+  abortSignal?: AbortSignal,
 ): Promise<UploadResult> => {
   // 参数验证
   if (!file || !(file instanceof File)) {
@@ -538,6 +554,11 @@ const customUpload = async (
 
   if (!config) {
     throw new Error('缺少上传配置');
+  }
+
+  // 检查是否已被取消
+  if (abortSignal?.aborted) {
+    throw new Error('Upload cancelled');
   }
 
   // 根据文件大小确定并发数
@@ -577,6 +598,7 @@ const customUpload = async (
           retryCount,
           actualChunkSize,
           actualConcurrentChunks,
+          abortSignal,
         );
       }
 
@@ -733,6 +755,7 @@ const customUpload = async (
               chunkSizeParam,
               concurrentChunks,
               onProgress,
+              abortSignal,
             );
           } catch (refreshError) {
             return await customUpload(
@@ -744,6 +767,7 @@ const customUpload = async (
               chunkSizeParam,
               concurrentChunks,
               onProgress,
+              abortSignal,
             );
           }
         }
@@ -870,6 +894,11 @@ const customUpload = async (
         let uploadedBytes = 0;
 
         const uploadChunk = async (chunk: Blob, index: number): Promise<void> => {
+          // 检查是否已被取消
+          if (abortSignal?.aborted) {
+            throw new Error('Upload cancelled');
+          }
+
           const chunkNumber = index + 1;
           const chunkFileForUpload = new File([chunk], `${file.name}-part-${chunkNumber}`, {
             type: file.type,
@@ -931,6 +960,11 @@ const customUpload = async (
         const results = [];
         const executing = new Set();
         for (const task of uploadTasks) {
+          // 检查是否已被取消
+          if (abortSignal?.aborted) {
+            throw new Error('Upload cancelled');
+          }
+
           const promise = task()
             .then((result) => {
               executing.delete(promise);
@@ -976,6 +1010,11 @@ const customUpload = async (
         console.log(
           `[Server上传] 使用服务器普通上传，文件大小: ${(file.size / (1024 * 1024)).toFixed(2)}MB`,
         );
+
+        // 检查是否已被取消
+        if (abortSignal?.aborted) {
+          throw new Error('Upload cancelled');
+        }
 
         try {
           const uploadParams: CommonType.UploadFileParams = {

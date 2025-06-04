@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
  * @Date: 2023-04-03 13:09:16
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-06-03 11:10:13
+ * @LastEditTime: 2025-06-03 16:45:03
  * @FilePath: \Antd-pro-Templete\src\utils\dealwithfile.ts
  * @Description:
  *
@@ -101,8 +101,9 @@ const getFileMd5 = async (
       await hashChunk(firstChunk, hasher);
       const firstChunkMd5 = hasher.digest();
 
-      // 使用第一个分块的MD5作为临时ID
-      const tempId = firstChunkMd5;
+      // 组合文件元信息创建更唯一的临时ID，避免不同文件前面分块相同导致临时MD5冲突
+      const fileMetaInfo = `${file.name}_${file.size}_${file.lastModified || Date.now()}_${firstChunkMd5}`;
+      const tempId = await md5(fileMetaInfo);
 
       // 创建一个计算完整MD5的Promise
       const md5Promise = new Promise<string>((resolve, reject) => {
@@ -111,6 +112,9 @@ const getFileMd5 = async (
           try {
             // 创建新的MD5计算器
             const fullHasher = await createMD5();
+
+            // 计算完整文件的MD5
+            await hashChunk(file, fullHasher);
 
             // 获取最终的完整MD5
             const finalMd5 = fullHasher.digest();

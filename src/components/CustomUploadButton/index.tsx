@@ -2,8 +2,8 @@
  * @Author: 刘浩奇 liuhaoqw1ko@gmail.com
  * @Date: 2023-03-30 16:17:04
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-05-14 16:10:29
- * @FilePath: \vr-space-console-local\src\components\CustomUploadButton\index.tsx
+ * @LastEditTime: 2025-06-03 17:09:50
+ * @FilePath: \Antd-pro-Templete\src\components\CustomUploadButton\index.tsx
  * @Description: 自定义上传按钮组件
  *
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
@@ -74,40 +74,97 @@ type CustomUploadProps =
  * 文件上传队列管理
  */
 class UploadQueue {
-  private queue: Array<() => Promise<any>> = [];
+  private queue: Array<{ task: () => Promise<any>; abortController: AbortController }> = [];
   private running = 0;
   private maxConcurrent: number;
+  private activeUploads: Map<string, AbortController> = new Map();
 
   constructor(maxConcurrent = 3) {
     this.maxConcurrent = maxConcurrent;
   }
 
   /**
+   * 获取指定文件的AbortController
+   */
+  getAbortController(fileId: string): AbortController | undefined {
+    return this.activeUploads.get(fileId);
+  }
+
+  /**
    * 添加上传任务到队列
    */
-  add(task: () => Promise<any>): Promise<any> {
+  add(task: () => Promise<any>, fileId?: string): Promise<any> {
     return new Promise((resolve, reject) => {
+      const abortController = new AbortController();
+
+      // 如果提供了fileId，保存AbortController以便后续取消
+      if (fileId) {
+        this.activeUploads.set(fileId, abortController);
+      }
+
       // 创建包装任务
       const wrappedTask = async () => {
         try {
+          // 检查是否已被取消
+          if (abortController.signal.aborted) {
+            throw new Error('Upload cancelled');
+          }
+
           const result = await task();
           resolve(result);
           return result;
-        } catch (error) {
-          reject(error);
+        } catch (error: any) {
+          if (error.name === 'AbortError' || error.message === 'Upload cancelled') {
+            reject(new Error('Upload cancelled'));
+          } else {
+            reject(error);
+          }
           throw error;
         } finally {
           this.running--;
+          if (fileId) {
+            this.activeUploads.delete(fileId);
+          }
           this.runNext();
         }
       };
 
       // 添加到队列
-      this.queue.push(wrappedTask);
+      this.queue.push({ task: wrappedTask, abortController });
 
       // 尝试执行
       this.runNext();
     });
+  }
+
+  /**
+   * 取消指定文件的上传
+   */
+  cancelUpload(fileId: string): boolean {
+    const abortController = this.activeUploads.get(fileId);
+    if (abortController) {
+      abortController.abort();
+      this.activeUploads.delete(fileId);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 取消所有上传
+   */
+  cancelAll(): void {
+    // 取消所有活跃的上传
+    this.activeUploads.forEach((controller) => {
+      controller.abort();
+    });
+    this.activeUploads.clear();
+
+    // 取消队列中等待的任务
+    this.queue.forEach(({ abortController }) => {
+      abortController.abort();
+    });
+    this.queue = [];
   }
 
   /**
@@ -119,8 +176,17 @@ class UploadQueue {
     }
 
     this.running++;
-    const task = this.queue.shift();
-    if (task) {
+    const queueItem = this.queue.shift();
+    if (queueItem) {
+      const { task, abortController } = queueItem;
+
+      // 检查任务是否已被取消
+      if (abortController.signal.aborted) {
+        this.running--;
+        this.runNext();
+        return;
+      }
+
       task().catch(() => {
         // 错误已在 wrappedTask 中处理
       });
@@ -131,7 +197,7 @@ class UploadQueue {
    * 清空上传队列
    */
   clear() {
-    this.queue = [];
+    this.cancelAll();
   }
 }
 
@@ -311,6 +377,9 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
     ({ file, onSuccess, onError, onProgress }: any) => {
       const uploadFile = file as RcFile;
 
+      // 生成文件唯一ID用于取消上传
+      const fileId = `${uploadFile.name}_${uploadFile.size}_${uploadFile.lastModified || Date.now()}`;
+
       // 使用上传队列管理上传任务
       uploadQueueRef.current
         .add(async () => {
@@ -323,6 +392,10 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
             const suffix = uploadFile.name.slice(uploadFile.name.lastIndexOf('.'));
             const uploadUrl = uploadConfig.path + md5 + suffix;
             const signature = getSignature(uploadConfig);
+
+            // 获取当前文件的AbortController
+            const abortController = uploadQueueRef.current.getAbortController(fileId);
+            const abortSignal = abortController?.signal;
 
             let result;
 
@@ -349,6 +422,7 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
                     onProgress({ percent });
                   }
                 },
+                abortSignal, // 传递取消信号
               );
             } else {
               // 常规上传
@@ -365,6 +439,7 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
                     onProgress({ percent });
                   }
                 },
+                abortSignal, // 传递取消信号
               );
             }
 
@@ -385,7 +460,13 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
             }
 
             return responseData;
-          } catch (error) {
+          } catch (error: any) {
+            // 检查是否是取消错误
+            if (error.message === 'Upload cancelled') {
+              console.log('文件上传已取消:', uploadFile.name);
+              return; // 不调用onError，避免显示错误信息
+            }
+
             console.error('文件上传失败:', error);
 
             if (onError) {
@@ -398,9 +479,11 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
 
             throw error;
           }
-        })
-        .catch((error) => {
-          console.error('上传队列处理失败:', error);
+        }, fileId)
+        .catch((error: any) => {
+          if (error.message !== 'Upload cancelled') {
+            console.error('上传队列处理失败:', error);
+          }
         });
     },
     [chunkUpload, fileSizeForChunk, chunkSize, concurrentChunks, onUploadSuccess, onUploadError],
@@ -476,6 +559,24 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
     }
   }, []);
 
+  /**
+   * 处理文件移除事件
+   */
+  const handleRemove = useCallback((file: UploadFile) => {
+    // 生成与上传时相同的文件ID
+    const fileId = `${file.name}_${file.size}_${file.lastModified || Date.now()}`;
+
+    // 取消对应的上传任务
+    const cancelled = uploadQueueRef.current.cancelUpload(fileId);
+
+    if (cancelled) {
+      console.log('已取消文件上传:', file.name);
+      // message.info(`已取消 ${file.name} 的上传`);
+    }
+
+    return true; // 允许移除文件
+  }, []);
+
   // 共享的field属性
   const sharedFieldProps = useMemo(
     () => ({
@@ -483,6 +584,7 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
       action: getUploadAction,
       beforeUpload,
       onChange: handleFileChange,
+      onRemove: handleRemove,
       data: prepareFileData,
       customRequest: chunkUpload ? customRequest : undefined,
       ...fieldProps,
@@ -491,6 +593,7 @@ const CustomUploadButton: React.FC<CustomUploadProps> = ({
       getUploadAction,
       beforeUpload,
       handleFileChange,
+      handleRemove,
       prepareFileData,
       chunkUpload,
       customRequest,
