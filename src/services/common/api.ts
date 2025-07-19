@@ -14,7 +14,7 @@ import { request } from '@umijs/max';
  * @description 获取资源权限（上传）凭证
  */
 export async function getAuth() {
-  return request<API.BaseResponse<CommonType.AuthResponse>>(`${API_URL}/resource/auth`, {
+  return request<CommonType.AuthResponse>(`${API_URL}/resource/auth`, {
     method: 'GET',
   });
 }
@@ -25,7 +25,7 @@ export async function getAuth() {
  * @param params.pid 父节点ID，默认0
  */
 export async function getAreaList(params?: { pid?: string }) {
-  return request<API.BaseResponse<CommonType.CommonListResponse>>(`${API_URL}/area/list`, {
+  return request<CommonType.CommonListResponse>(`${API_URL}/area/list`, {
     method: 'GET',
     params,
   });
@@ -56,7 +56,7 @@ export async function uploadFile(params: CommonType.UploadFileParams) {
     window.localStorage.getItem('userInfo') || window.sessionStorage.getItem('userInfo');
   const token = userInfo ? JSON.parse(userInfo).token : null;
 
-  return request<API.BaseResponse<void>>(`${API_URL}/upload`, {
+  return request<void>(`${API_URL}/upload`, {
     method: 'POST',
     headers: {
       'X-Auth-Token': token,
@@ -70,12 +70,9 @@ export async function uploadFile(params: CommonType.UploadFileParams) {
  * @description 获取订单平台的枚举值列表
  */
 export async function getOrderPlatformEnum() {
-  return request<API.BaseResponse<CommonType.CommonListResponse>>(
-    `${API_URL}/enum/order/platform`,
-    {
-      method: 'GET',
-    },
-  );
+  return request<CommonType.CommonListResponse>(`${API_URL}/enum/order/platform`, {
+    method: 'GET',
+  });
 }
 
 /**
@@ -83,7 +80,7 @@ export async function getOrderPlatformEnum() {
  * @description 获取订单渠道的枚举值列表
  */
 export async function getOrderChannelEnum() {
-  return request<API.BaseResponse<CommonType.CommonListResponse>>(`${API_URL}/enum/order/channel`, {
+  return request<CommonType.CommonListResponse>(`${API_URL}/enum/order/channel`, {
     method: 'GET',
   });
 }

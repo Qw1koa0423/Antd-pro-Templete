@@ -2,7 +2,7 @@
  * @Author: 刘浩奇 liuhaoqi@yaozai.net
  * @Date: 2023-03-22 11:39:51
  * @LastEditors: Liu Haoqi liuhaoqw1ko@gmail.com
- * @LastEditTime: 2025-04-08 13:34:22
+ * @LastEditTime: 2025-06-30 18:02:12
  * @FilePath: \Antd-pro-Templete\src\requestErrorConfig.ts
  * @Description: request错误处理
  *
@@ -148,7 +148,9 @@ export const errorConfig: RequestConfig = {
       if (path.includes('bcebos.com')) {
         return response;
       }
-
+      if (path.includes('/export')) {
+        return response;
+      }
       // 处理业务码
       if (data?.code !== 0) {
         // 登录失效处理
@@ -159,7 +161,7 @@ export const errorConfig: RequestConfig = {
             history.push('/user/login');
           }
           return Promise.reject({
-            errorMessage: data.msg,
+            errorMessage: data.msg || '登录已过期，请重新登录',
             code: data.code,
           });
         }
@@ -171,16 +173,11 @@ export const errorConfig: RequestConfig = {
         });
       }
 
-      // 成功响应处理 - 只返回接口文档中定义的data字段内容
-      // 保留原始响应结构，以满足Axios类型要求
+      // 成功响应处理 - 直接返回业务数据，无需二次包装
+      // 这样业务代码中可以直接使用 response.data 访问实际数据
       return {
         ...response,
-        data: {
-          success: true,
-          data: data.data,
-          errorMessage: '',
-          errorCode: 0,
-        },
+        data: data.data, // 直接返回后端的data字段，而不是包装成新的结构
       };
     },
   ],

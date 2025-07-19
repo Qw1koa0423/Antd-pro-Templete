@@ -16,7 +16,7 @@ import { request } from '@umijs/max';
  * @param body 登录参数
  */
 export async function login(body: AccountType.LoginParams) {
-  return request<API.BaseResponse<AccountType.LoginResponse>>(`${API_URL}/account/login`, {
+  return request<AccountType.LoginResponse>(`${API_URL}/account/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -30,7 +30,7 @@ export async function login(body: AccountType.LoginParams) {
  * @param body 密码重置参数
  */
 export async function resetPassword(body: AccountType.ResetPasswordParams) {
-  return request<API.BaseResponse<void>>(`${API_URL}/account/rePass`, {
+  return request<void>(`${API_URL}/account/rePass`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -48,7 +48,7 @@ export async function getApiAuth(options?: { [key: string]: any }) {
     window.localStorage.getItem('userInfo') || window.sessionStorage.getItem('userInfo');
   const token = userInfo ? JSON.parse(userInfo).token : null;
 
-  return request<API.BaseResponse<AccountType.ApiAuthResponse>>(`${API_URL}/auth/api`, {
+  return request<AccountType.ApiAuthResponse>(`${API_URL}/auth/api`, {
     method: 'GET',
     headers: {
       'X-Auth-Token': token,

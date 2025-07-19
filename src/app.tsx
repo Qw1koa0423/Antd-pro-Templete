@@ -43,11 +43,11 @@ export async function getInitialState(): Promise<{
       // 获取最新的API权限列表
       try {
         const apiAuthRes = await getApiAuth();
-        if (apiAuthRes.data && apiAuthRes.data.list) {
+        if (apiAuthRes && apiAuthRes.list) {
           // 合并最新的权限信息
           const updatedUserInfo = {
             ...storageInfo,
-            apiPermissions: apiAuthRes.data.list,
+            apiPermissions: apiAuthRes.list,
           };
 
           // 更新本地存储

@@ -39,10 +39,10 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (values: AccountType.LoginParams) => {
     try {
       // 登录
-      const res = await login({
+      const userInfo = await login({
         ...values,
       });
-      const userInfo = res.data; // 获取实际的业务数据
+      // 现在直接获取业务数据，无需通过 .data 访问
 
       // 构建用户信息对象
       const userData = {
@@ -57,9 +57,9 @@ const LoginPage: React.FC = () => {
       // 获取API权限列表
       try {
         const apiAuthRes = await getApiAuth();
-        if (apiAuthRes.data && apiAuthRes.data.list) {
+        if (apiAuthRes && apiAuthRes.list) {
           // 更新用户信息中的权限列表
-          userData.apiPermissions = apiAuthRes.data.list;
+          userData.apiPermissions = apiAuthRes.list;
           // 重新保存更新后的用户信息
           window.localStorage.setItem('userInfo', JSON.stringify(userData));
           window.sessionStorage.setItem('userInfo', JSON.stringify(userData));

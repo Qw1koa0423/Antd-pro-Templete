@@ -124,7 +124,7 @@ const getConcurrentByFileSize = (fileSize: number): number => {
  */
 export const getUploadAuth = async (): Promise<CommonType.AuthResponse> => {
   try {
-    const { data } = await getAuth();
+    const data = await getAuth();
     localStorage.setItem(UPLOAD_DATA_KEY, JSON.stringify(data));
     return data;
   } catch (error) {
@@ -1038,8 +1038,7 @@ const customUpload = async (
             }
           }
 
-          // The 'uploadFileService' returns BaseResponse<void>, so success is implicit if no error
-          // The 'response' variable here from `await uploadFileService` will be the BaseResponse<void>
+          // The 'uploadFileService' returns void directly (no wrapper), so success is implicit if no error
           // We need to ensure our UploadResult format.
           // Assuming 'host + fileKey' is the accessible URL.
           return {
