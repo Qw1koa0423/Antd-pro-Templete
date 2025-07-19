@@ -21,6 +21,7 @@ declare namespace AccountType {
   type LoginResponse = {
     token: string;
     apiPermissions?: string[]; // API权限列表
+    role?: string; // 用户角色（用于角色权限模式）
   };
   /** 重置密码请求类型 */
   type ResetPasswordParams = {

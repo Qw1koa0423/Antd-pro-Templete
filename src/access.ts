@@ -9,6 +9,8 @@
  * Copyright (c) 2023 by 遥在科技, All Rights Reserved.
  */
 
+import { PERMISSION_CONFIG, shouldEnablePermission, isRouteInWhitelist } from './config/permission';
+
 /**
  * @name 权限定义
  * @description 返回一个权限对象，其中包含了各种权限控制函数
@@ -18,15 +20,46 @@ export default function access(initialState: {
   currentUser?: AccountType.LoginResponse & { username: string };
 }) {
   const { currentUser } = initialState || {};
-  // 获取用户的API权限列表（假设后端返回的结构中包含apiPermissions字段）
-  const apiPermissions = currentUser?.apiPermissions || [];
-  // 判断是否拥有所有权限(*表示拥有所有权限)
-  const hasAllPermissions = apiPermissions.includes('*');
 
-  // 判断是否有管理员权限（这里可以根据API权限列表中的特定权限来判断）
-  const hasAdminPermission =
-    hasAllPermissions ||
-    apiPermissions.some((permission) => permission.includes('admin:') || permission === 'admin');
+  // 检查是否启用权限系统
+  if (!shouldEnablePermission()) {
+    console.log('🔓 权限系统已禁用，所有用户拥有完整权限');
+    return {
+      ...PERMISSION_CONFIG.DEFAULT_PERMISSIONS,
+      isLogin: !!currentUser, // 保持登录状态检查
+    };
+  }
+  // 根据权限模式获取权限信息
+  let apiPermissions: string[] = [];
+  let hasAllPermissions = false;
+  let hasAdminPermission = false;
+
+  if (PERMISSION_CONFIG.PERMISSION_MODE === 'api') {
+    // API权限模式
+    apiPermissions = currentUser?.apiPermissions || [];
+    hasAllPermissions = apiPermissions.some((permission) =>
+      PERMISSION_CONFIG.ADMIN_PERMISSIONS.includes(permission),
+    );
+    hasAdminPermission =
+      hasAllPermissions ||
+      apiPermissions.some((permission) =>
+        PERMISSION_CONFIG.ADMIN_PERMISSIONS.some(
+          (adminPerm) => permission.includes(adminPerm) || permission === adminPerm,
+        ),
+      );
+  } else if (PERMISSION_CONFIG.PERMISSION_MODE === 'role') {
+    // 角色权限模式
+    const userRole = (currentUser?.role ||
+      'guest') as keyof typeof PERMISSION_CONFIG.ROLE_PERMISSIONS;
+    apiPermissions = PERMISSION_CONFIG.ROLE_PERMISSIONS[userRole] || [];
+    hasAllPermissions = apiPermissions.includes('*');
+    hasAdminPermission = userRole === 'admin' || hasAllPermissions;
+  } else if (PERMISSION_CONFIG.PERMISSION_MODE === 'simple') {
+    // 简单模式：只检查登录状态
+    hasAllPermissions = !!currentUser;
+    hasAdminPermission = !!currentUser;
+    apiPermissions = currentUser ? ['*'] : [];
+  }
 
   return {
     // 是否登录
@@ -37,6 +70,11 @@ export default function access(initialState: {
 
     // API权限检查函数 - 用于路由的access属性
     apiPermission: (route: any) => {
+      // 检查是否在白名单中
+      if (route?.path && isRouteInWhitelist(route.path)) {
+        return true;
+      }
+
       // 如果用户拥有所有权限(*)，直接返回true
       if (hasAllPermissions) return true;
 
@@ -50,6 +88,11 @@ export default function access(initialState: {
 
     // 路由访问权限，接收路由信息作为参数
     routeFilter: (route: any) => {
+      // 检查是否在白名单中
+      if (route?.path && isRouteInWhitelist(route.path)) {
+        return true;
+      }
+
       // 如果用户拥有所有权限(*)，则可以访问所有路由
       if (hasAllPermissions) return true;
 
@@ -79,8 +122,10 @@ export default function access(initialState: {
 
     // API权限检查 - 直接基于API权限列表判断
     canAccess: (apiKey: string) => {
-      // 如果没有登录，则没有权限
-      if (!currentUser) return false;
+      // 如果没有登录，则没有权限（除了简单模式）
+      if (!currentUser && PERMISSION_CONFIG.PERMISSION_MODE !== 'simple') {
+        return false;
+      }
 
       // 如果用户拥有所有权限(*)，则可以访问所有API
       if (hasAllPermissions) return true;

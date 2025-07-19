@@ -1,0 +1,260 @@
+# 权限系统配置规范
+
+## 权限系统架构
+
+### 核心配置文件
+
+- `src/config/permission.ts` - 权限系统总配置
+- `src/access.ts` - UMI权限插件实现
+- `src/components/PermissionWrapper/` - 便捷权限组件
+
+### 权限模式类型
+
+```typescript
+type PermissionMode = 'api' | 'role' | 'simple';
+
+// 'api' - 基于API权限列表的细粒度控制
+// 'role' - 基于用户角色的权限控制
+// 'simple' - 仅检查登录状态的简单权限
+```
+
+## 配置方案
+
+### 1. 无权限模式
+
+```typescript
+export const PERMISSION_CONFIG = {
+  ENABLE_PERMISSION: false,
+  // 所有权限检查返回true
+};
+```
+
+**使用场景**: 内部工具、原型系统、无需权限的应用
+
+**特点**:
+
+- 所有功能对所有用户开放
+- 无需权限API接口
+- 开发和测试便利
+
+### 2. 简单权限模式
+
+```typescript
+export const PERMISSION_CONFIG = {
+  ENABLE_PERMISSION: true,
+  PERMISSION_MODE: 'simple',
+  FORCE_PERMISSION_IN_DEV: false,
+};
+```
+
+**使用场景**: 小型项目、仅需登录验证的系统
+
+**特点**:
+
+- 仅检查用户登录状态
+- 登录用户拥有全部功能
+- 配置简单，易于实现
+
+### 3. 完整权限模式
+
+```typescript
+export const PERMISSION_CONFIG = {
+  ENABLE_PERMISSION: true,
+  PERMISSION_MODE: 'api',
+  FORCE_PERMISSION_IN_DEV: true,
+};
+```
+
+**使用场景**: 企业级应用、需要细粒度权限控制
+
+**特点**:
+
+- 基于API权限列表的完整控制
+- 支持复杂的权限逻辑
+- 适合大型企业应用
+
+### 4. 开发友好模式
+
+```typescript
+export const PERMISSION_CONFIG = {
+  ENABLE_PERMISSION: true,
+  PERMISSION_MODE: 'api',
+  FORCE_PERMISSION_IN_DEV: false, // 开发时禁用权限
+};
+```
+
+**使用场景**: 开发阶段、需要频繁测试功能
+
+**特点**:
+
+- 开发环境无权限限制
+- 生产环境完整权限控制
+- 提升开发效率
+
+## 组件使用规范
+
+### PermissionWrapper 组件
+
+基础用法:
+
+```tsx
+// 检查API权限
+<PermissionWrapper permission="user:create">
+  <Button>创建用户</Button>
+</PermissionWrapper>
+
+// 检查登录状态
+<PermissionWrapper requireLogin>
+  <Button>需要登录</Button>
+</PermissionWrapper>
+
+// 检查管理员权限
+<PermissionWrapper requireAdmin>
+  <Button>管理员功能</Button>
+</PermissionWrapper>
+
+// 带回退组件
+<PermissionWrapper
+  permission="user:delete"
+  fallback={<Button disabled>无权限</Button>}
+>
+  <Button danger>删除用户</Button>
+</PermissionWrapper>
+```
+
+### usePermission Hook
+
+```tsx
+const { hasPermission, isAdmin, isLoggedIn, isPermissionEnabled } = usePermission();
+
+// 条件渲染
+if (hasPermission('user:create')) {
+  return <CreateUserButton />;
+}
+
+// 权限检查
+const canDelete = isAdmin() || hasPermission('user:delete');
+```
+
+## 路由配置适配
+
+### 无权限模式路由
+
+```typescript
+{
+  path: '/user',
+  name: '用户管理',
+  component: './User',
+  // 无需access属性
+}
+```
+
+### 简单权限模式路由
+
+```typescript
+{
+  path: '/user',
+  name: '用户管理',
+  access: 'isLogin',  // 仅检查登录
+  component: './User',
+}
+```
+
+### 完整权限模式路由
+
+```typescript
+{
+  path: '/user',
+  name: '用户管理',
+  access: 'apiPermission',
+  accessApi: 'user:list',  // 具体API权限
+  component: './User',
+}
+```
+
+## 权限白名单
+
+默认白名单路由（无需权限检查）:
+
+```typescript
+PERMISSION_WHITELIST: ['/user/login', '/home', '/', '/403', '/404'];
+```
+
+## AI生成代码时的权限处理
+
+### 1. 识别项目权限模式
+
+AI应该根据 `PERMISSION_CONFIG.ENABLE_PERMISSION` 的值判断项目的权限需求:
+
+- `false`: 生成无权限检查的代码
+- `true` + `PERMISSION_MODE: 'simple'`: 生成登录检查
+- `true` + `PERMISSION_MODE: 'api'`: 生成完整权限控制
+
+### 2. 组件权限包装
+
+```tsx
+// 当启用权限时
+<PermissionWrapper permission="user:create">
+  <Button type="primary">新增用户</Button>
+</PermissionWrapper>
+
+// 当禁用权限时
+<Button type="primary">新增用户</Button>
+```
+
+### 3. 路由权限配置
+
+```typescript
+// 根据权限模式生成对应的路由配置
+const routeConfig = PERMISSION_CONFIG.ENABLE_PERMISSION
+  ? {
+      path: '/user',
+      name: '用户管理',
+      access: 'apiPermission',
+      accessApi: 'user:list',
+      component: './User',
+    }
+  : {
+      path: '/user',
+      name: '用户管理',
+      component: './User',
+    };
+```
+
+## 权限预设应用
+
+快速切换权限模式:
+
+```typescript
+import { applyPermissionPreset } from '@/config/permission';
+
+// 应用预设
+applyPermissionPreset('NO_PERMISSION'); // 无权限
+applyPermissionPreset('SIMPLE_PERMISSION'); // 简单权限
+applyPermissionPreset('FULL_PERMISSION'); // 完整权限
+applyPermissionPreset('DEVELOPMENT_MODE'); // 开发模式
+```
+
+## 最佳实践
+
+### 1. 开发阶段建议
+
+- 初期使用 `NO_PERMISSION` 或 `DEVELOPMENT_MODE`
+- 核心功能完成后再配置权限系统
+- 使用 `PermissionWrapper` 组件便于后续权限控制
+
+### 2. 权限设计原则
+
+- 权限标识使用 `module:action` 格式
+- 渐进式权限升级: 无权限 → 简单 → 完整
+- 白名单路由设计要合理
+
+### 3. 团队协作
+
+- 开发时可禁用权限提升效率
+- 测试阶段启用权限验证功能
+- 生产部署使用完整权限控制
+
+通过这套灵活的权限配置系统，可以满足从简单内部工具到复杂企业级系统的各种权限需求。description: globs: alwaysApply: false
+
+---
